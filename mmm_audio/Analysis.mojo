@@ -299,7 +299,7 @@ fn fft_frequencies(sr: Float64, n_fft: Int) -> List[Float64]:
     return freqs^
 
 fn mel_frequencies(
-    n_mels: Int = 128, fmin: Float64 = 0.0, fmax: Float64 = 11025.0, htk: Bool = False
+    n_mels: Int = 128, fmin: Float64 = 0.0, fmax: Float64 = 20000.0, htk: Bool = False
 ) -> List[Float64]:
     """Compute an array of acoustic frequencies tuned to the mel scale.
 
@@ -433,9 +433,7 @@ def hz_to_mel(
 
     return mels
 
-def mel_to_hz(
-    mels: _ScalarOrSequence[_FloatLike_co], *, htk: bool = False
-) -> Union[np.floating[Any], np.ndarray]:
+def mel_to_hz(mel: Float64, htk: Bool = False) -> Float64:
 # https://github.com/librosa/librosa/blob/e403272fc984bc4aeb316e5f15899042224bb9fe/librosa/core/convert.py#L1254C1-L1307C1
     """Convert mel bin numbers to frequencies
 
@@ -449,7 +447,7 @@ def mel_to_hz(
 
     Parameters
     ----------
-    mels : np.ndarray [shape=(n,)], float
+    mels : Float64
         mel bins to convert
     htk : bool
         use HTK formula instead of Slaney
@@ -463,15 +461,14 @@ def mel_to_hz(
     --------
     hz_to_mel
     """
-    mels = np.asanyarray(mels)
 
     if htk:
-        return 700.0 * (10.0 ** (mels / 2595.0) - 1.0)
+        return 700.0 * (10.0 ** (mel / 2595.0) - 1.0)
 
     # Fill in the linear scale
     f_min = 0.0
     f_sp = 200.0 / 3
-    freqs = f_min + f_sp * mels
+    freqs = f_min + f_sp * mel
 
     # And now the nonlinear scale
     min_log_hz = 1000.0  # beginning of log region (Hz)
@@ -488,8 +485,38 @@ def mel_to_hz(
 
     return freqs
 
+fn diff(arr: List[Float64]) -> List[Float64]:
+    """Compute differences between consecutive elements.
+    
+    Args:
+        arr: Input list of Float64 values.
+    
+    Returns:
+        A new list with length len(arr) - 1 containing differences.
+    """
+    var result = List[Float64](length=len(arr) - 1, fill=0.0)
+    for i in range(len(arr) - 1):
+        result[i] = arr[i + 1] - arr[i]
+    return result^
 
-struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64 = 20000.0, fft_size: Int = 1024, htk: Bool = False](FFTProcessable):
+fn subtract_outer(a: List[Float64], b: List[Float64]) -> List[List[Float64]]:
+    """Compute outer subtraction: a[i] - b[j] for all i, j.
+    
+    Args:
+        a: First input list (will be rows).
+        b: Second input list (will be columns).
+    
+    Returns:
+        A 2D list where result[i][j] = a[i] - b[j].
+    """
+    var result = List[List[Float64]](length=len(a), fill=List[Float64]())
+    for i in range(len(a)):
+        result[i] = List[Float64](length=len(b), fill=0.0)
+        for j in range(len(b)):
+            result[i][j] = a[i] - b[j]
+    return result^
+
+struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64 = 20000.0, fft_size: Int = 1024, htk: Bool = False, slaney_norm: Bool = True](FFTProcessable):
     """Mel Bands analysis.
 
     Parameters:
@@ -497,9 +524,13 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
         min_freq: The minimum frequency (in Hz) to consider when computing the mel bands.
         max_freq: The maximum frequency (in Hz) to consider when computing the mel bands.
         fft_size: The size of the FFT used to compute the mel bands.
+        htk: If True, use HTK formula to compute mel frequencies. TODO: what is the HTK forumla?
+        slaney_norm: If True, use Slaney-style normalization for the mel bands. TODO: explain what this means.
     """
 
     var world: UnsafePointer[MMMWorld]
+    var weights: List[List[Float64]]
+    var bands: List[Float64]
 
     fn __init__(out self, world: UnsafePointer[MMMWorld]):
         self.world = world
@@ -507,47 +538,8 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
         # https://librosa.org/doc/main/generated/librosa.filters.mel.html
         # https://github.com/librosa/librosa/blob/e403272fc984bc4aeb316e5f15899042224bb9fe/librosa/filters.py#L128
 
-        # Initialize the weights with zeros
-        weights = List[List[Float64]](length=num_bands,fill=List[Float64](length=(fft_size // 2) + 1, fill=0.0))
-
-        fftfreqs = fft_frequencies(sr=self.world[].sample_rate, n_fft=self.fft_size)
-
-        # 'Center freqs' of mel bands - uniformly spaced between limits
-        mel_f = mel_frequencies(num_bands + 2, fmin=min_freq, fmax=max_freq, htk=htk)
-
-        fdiff = np.diff(mel_f)
-        ramps = np.subtract.outer(mel_f, fftfreqs)
-
-        for i in range(num_bands):
-            # lower and upper slopes for all bins
-            lower = -ramps[i] / fdiff[i]
-            upper = ramps[i + 2] / fdiff[i + 1]
-
-            # .. then intersect them with each other and zero
-            weights[i] = np.maximum(0, np.minimum(lower, upper))
-
-        if isinstance(norm, str):
-            if norm == "slaney":
-                # Slaney-style mel is scaled to be approx constant energy per channel
-                enorm = 2.0 / (mel_f[2 : num_bands + 2] - mel_f[:num_bands])
-                weights *= enorm[:, np.newaxis]
-            else:
-                raise ParameterError(f"Unsupported norm={norm}")
-        else:
-            weights = util.normalize(weights, norm=norm, axis=-1)
-
-        # Only check weights if f_mel[0] is positive
-        if not np.all((mel_f[:-2] == 0) | (weights.max(axis=1) > 0)):
-            # This means we have an empty channel somewhere
-            warnings.warn(
-                "Empty filters detected in mel frequency basis. "
-                "Some channels will produce empty responses. "
-                "Try increasing your sampling rate (and fmax) or "
-                "reducing num_bands.",
-                stacklevel=2,
-            )
-
-        # return weights
+        self.weights = self.make_weights()
+        self.bands = List[Float64](length=num_bands, fill=0.0)
 
     fn next_frame(mut self, mut mags: List[Float64], mut phases: List[Float64]) -> None:
         """Compute the mel bands for a given FFT analysis.
@@ -559,3 +551,62 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
             phases: The input phases as a List of Float64.
         """
         pass # placeholder
+    
+    fn make_weights(self) -> List[List[Float64]]:
+        """Compute the mel filter bank weights.
+
+        Returns:
+            A 2D list where each sublist contains the weights for a mel band.
+        """
+        weights = List[List[Float64]](length=num_bands,fill=List[Float64](length=(fft_size // 2) + 1, fill=0.0))
+
+        fftfreqs = fft_frequencies(sr=self.world[].sample_rate, n_fft=self.fft_size)
+
+        # 'Center freqs' of mel bands - uniformly spaced between limits
+        mel_f = mel_frequencies(num_bands + 2, fmin=min_freq, fmax=max_freq, htk=htk)
+
+        fdiff = diff(mel_f)
+        ramps = subtract_outer(mel_f, fftfreqs)
+
+        for i in range(num_bands):
+            # lower and upper slopes for all bins
+            # lower = -ramps[i] / fdiff[i] # this is vector math (numpy, so needs to be broadcast or unpacked)
+            lower: List[Float64] = List[Float64](length=len(ramps[i]), fill=0.0)
+            for j in range(len(ramps[i])):
+                lower[j] = -ramps[i][j] / fdiff[i]
+            # upper = ramps[i + 2] / fdiff[i + 1]
+            upper: List[Float64] = List[Float64](length=len(ramps[i]), fill=0.0)
+            for j in range(len(ramps[i])):
+                upper[j] = ramps[i + 2][j] / fdiff[i + 1]
+
+            # .. then intersect them with each other and zero
+            for j in range(len(ramps[i])):
+                # weights[i] = np.maximum(0, np.minimum(lower, upper))
+                weights[i][j] = max(0.0, min(lower[j], upper[j]))
+
+        @parameter
+        if slaney_norm:
+            # Slaney-style mel is scaled to be approx constant energy per channel
+            var enorm = List[Float64](length=num_bands, fill=0.0)
+            for i in range(num_bands):
+                enorm[i] = 2.0 / (mel_f[i + 2] - mel_f[i])
+            
+            # Apply normalization to each weight vector
+            for i in range(num_bands):
+                for j in range(len(weights[i])):
+                    weights[i][j] *= enorm[i]
+        else:
+            min = weights[0][0]
+            max = weights[0][0]
+            for i in range(num_bands):
+                for j in range(len(weights[i])):
+                    if weights[i][j] < min:
+                        min = weights[i][j]
+                    if weights[i][j] > max:
+                        max = weights[i][j]
+            rng = max - min
+            if rng > 0.0:
+                for i in range(num_bands):
+                    for j in range(len(weights[i])):
+                        weights[i][j] = (weights[i][j] - min) / rng
+        return weights^
