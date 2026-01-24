@@ -83,7 +83,7 @@ def test_fft_frequencies():
     expected = SIMD[DType.float64, 8](0.0, 86.1328125, 172.265625, 258.3984375, 344.53125, 430.6640625, 516.796875, 602.9296875)
     assert_almost_equal(result_simd, expected, "Test: fft_frequencies function failed")
 
-def _test_mel_bands[n_mels: Int, n_fft: Int, sr: Int, htk: Bool]():
+def _test_mel_bands_weights[n_mels: Int, n_fft: Int, sr: Int, htk: Bool]():
     world = MMMWorld(sample_rate=sr)
     w = LegacyUnsafePointer(to=world)
     melbands = MelBands[num_bands=n_mels,min_freq=20.0,max_freq=20000.0,fft_size=n_fft,htk=htk](w)
@@ -99,15 +99,15 @@ def _test_mel_bands[n_mels: Int, n_fft: Int, sr: Int, htk: Bool]():
     # print(len(melbands.weights))
     # print(len(melbands.weights[0]))
 
-    weights_flat = List[Float32]()
+    weights_flat = List[Float64]()
 
     for i in range(len(melbands.weights)):
         for j in range(len(melbands.weights[i])):
-            weights_flat.append(Float32(melbands.weights[i][j]))
+            weights_flat.append(Float64(melbands.weights[i][j]))
 
     # print("melband weights flat len: ", len(weights_flat))
 
-    expected_path = "examples/tests/results_for_validating/librosa_mel_bands_weights_results"
+    expected_path = "examples/tests/results_for_testing_against/librosa_mel_bands_weights_results"
     expected_path += "_nmels=" + String(n_mels)
     expected_path += "_fftsize=" + String(n_fft)
     expected_path += "_sr=" + String(sr)
@@ -115,7 +115,7 @@ def _test_mel_bands[n_mels: Int, n_fft: Int, sr: Int, htk: Bool]():
 
     # print("loading: ",expected_path)
 
-    expected_flat = List[Float32]()
+    expected_flat = List[Float64]()
 
     with open(expected_path, "r") as f:
         string = f.read()
@@ -123,27 +123,73 @@ def _test_mel_bands[n_mels: Int, n_fft: Int, sr: Int, htk: Bool]():
         for line in lines:
             l = line.strip()
             if len(l) > 0:
-                expected_flat.append(Float32(Float64(l)))
+                expected_flat.append(Float64(l))
 
-    assert_equal(len(weights_flat),len(expected_flat),"test mel bands: Expected weights and loaded weights not equal length")
+    compare_long_lists(weights_flat, expected_flat)
 
-    weights_simd = SIMD[DType.float32,32]()
-    expected_simd = SIMD[DType.float32,32]()
+def compare_long_lists[chunk_size: Int = 64](a: List[Float64], b: List[Float64]):
+    assert_equal(len(a), len(b), "Lists are of different lengths")
+    a_simd = SIMD[DType.float64,chunk_size]()
+    b_simd = SIMD[DType.float64,chunk_size]()
 
     i: Int = 0
-    while i < len(weights_flat):
-        weights_simd[i % 32] = weights_flat[i]
-        expected_simd[i % 32] = expected_flat[i]
-        if i > 0 and i % 32 == 0:
-            # print(weights_simd)
-            # print(expected_simd)
-            assert_almost_equal(weights_simd,expected_simd)
+    while i < len(a):
+        a_simd[i % chunk_size] = a[i]
+        b_simd[i % chunk_size] = b[i]
+        if i > 0 and i % chunk_size == 0:
+            assert_almost_equal(a_simd,b_simd)
         i += 1
 
-def test_all_mel_bands():
-    _test_mel_bands[40,512,44100,False]()
-    _test_mel_bands[40,512,44100,True]()
+def test_all_mel_bands_weights():
+    _test_mel_bands_weights[40,512,44100,False]()
+    _test_mel_bands_weights[40,512,44100,True]()
+
+struct MelBandsTestSuite(FFTProcessable):
+    var melbands: MelBands[num_bands=10,min_freq=20.0,max_freq=20000.0,fft_size=1024]
+    var data: List[List[Float64]]
+
+    fn __init__(out self, w: LegacyUnsafePointer[MMMWorld]):
+        self.melbands = MelBands[num_bands=10,min_freq=20.0,max_freq=20000.0,fft_size=1024](w)
+        self.data = List[List[Float64]]()
+
+    fn next_frame(mut self, mut mags: List[Float64], mut phases: List[Float64]):
+        self.melbands.next_frame(mags, phases)
+        self.data.append(self.melbands.bands.copy())
+
+def test_mel_bands():
+    world = MMMWorld(sample_rate=44100)
+    w = LegacyUnsafePointer(to=world)
+    mbts = MelBandsTestSuite(w)
+    fftprocess = FFTProcess[MelBandsTestSuite,1024,512,WindowType.hann](w,mbts^)
+    buf = Buffer.load("resources/Shiverer.wav")
+    for i in range(buf.num_frames):
+        _ = fftprocess.next(buf.data[0][i])
+    
+    print("Number of frames processed: ", len(fftprocess.buffered_process.process.process.data))
+    mels_flat = List[Float64]()
+    for frame in fftprocess.buffered_process.process.process.data:
+        for band in frame:
+            mels_flat.append(band)
+    
+    expected_path = "examples/tests/results_for_testing_against/librosa_mel_bands_analysis_nmels=10_fftsize=1024_sr=44100.csv"
+
+    expected_flat = List[Float64]()
+    for _ in range(10):
+        expected_flat.append(0.0)
+
+    with open(expected_path, "r") as f:
+        string = f.read()
+        lines = string.split("\n")
+        for line in lines:
+            l = line.strip()
+            if len(l) > 0:
+                expected_flat.append(Float64(l))
+    
+    # remove last 10 from "expected flat"
+    expected_flat = expected_flat[0:len(expected_flat)-10]
+
+    compare_long_lists[4](mels_flat, expected_flat)
 
 def main():
     TestSuite.discover_tests[__functions_in_module()]().run()
-    # test_all_mel_bands()
+    # test_mel_bands()

@@ -17,7 +17,7 @@ struct MelBandsExample(Movable, Copyable):
         p = MelBands[num_bands,fft_size=1024](self.world)
         self.analyzer = FFTProcess[MelBands[num_bands,fft_size=1024],1024,512,WindowType.hann](self.world,p^)
         self.m = Messenger(self.world)
-        self.mul = 1.0
+        self.mul = 500.0
 
     fn next(mut self) -> SIMD[DType.float64, 2]:
         

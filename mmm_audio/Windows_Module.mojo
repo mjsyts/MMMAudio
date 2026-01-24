@@ -88,7 +88,7 @@ fn rect_window(size: Int64) -> List[Float64]:
         List containing the rectangular window values (all ones).
     """
     var window = List[Float64]()
-    for i in range(size):
+    for _ in range(size):
         window.append(1.0)
     return window.copy()
 
