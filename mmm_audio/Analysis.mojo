@@ -337,28 +337,21 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
         ramps = subtract_outer(mel_f, fftfreqs)
 
         for i in range(num_bands):
-            # lower and upper slopes for all bins
-            # lower = -ramps[i] / fdiff[i] # this is vector math (numpy, so needs to be broadcast or unpacked)
             lower: List[Float64] = List[Float64](length=len(ramps[i]), fill=0.0)
             for j in range(len(ramps[i])):
                 lower[j] = -ramps[i][j] / fdiff[i]
-            # upper = ramps[i + 2] / fdiff[i + 1]
             upper: List[Float64] = List[Float64](length=len(ramps[i]), fill=0.0)
             for j in range(len(ramps[i])):
                 upper[j] = ramps[i + 2][j] / fdiff[i + 1]
-                # upper[j] = -ramps[i + 2][j] / fdiff[i + 1]
 
-            # .. then intersect them with each other and zero
             for j in range(len(ramps[i])):
-                # weights[i] = np.maximum(0, np.minimum(lower, upper))
                 self.weights[i][j] = max(0.0, min(lower[j], upper[j]))
 
-        # Slaney-style mel is scaled to be approx constant energy per channel
+        # Slaney-style mel
         var enorm = List[Float64](length=num_bands, fill=0.0)
         for i in range(num_bands):
             enorm[i] = 2.0 / (mel_f[i + 2] - mel_f[i])
         
-        # Apply normalization to each weight vector
         for i in range(num_bands):
             for j in range(len(self.weights[i])):
                 self.weights[i][j] *= enorm[i]

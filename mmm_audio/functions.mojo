@@ -1,5 +1,4 @@
-from random import random_float64
-from math import *
+from mmm_audio import *
 
 struct Changed(Representable, Movable, Copyable):
     """Detect changes in a Bool value."""
@@ -702,7 +701,6 @@ fn fft_frequencies(sr: Float64, n_fft: Int) -> List[Float64]:
     Returns:
         A List of Float64 representing the center frequencies of each FFT bin.
     """
-    # [TODO] test against: np.fft.rfftfreq(n=n_fft, d=1.0 / sr)
     num_bins = (n_fft // 2) + 1
     binHz = sr / Float64(n_fft)
     freqs = List[Float64](length=num_bins, fill=0.0)
