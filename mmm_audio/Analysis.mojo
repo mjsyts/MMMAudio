@@ -279,18 +279,19 @@ struct RMS(BufferedProcessable):
             sum_sq += v * v
         return sqrt(sum_sq / Float64(len(frame)))
 
-struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64 = 20000.0, fft_size: Int = 1024, htk: Bool = False](FFTProcessable):
+struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64 = 20000.0, fft_size: Int = 1024](FFTProcessable):
     """Mel Bands analysis.
+
+    The Mel scale is a perceptual scale of pitches that approximates the human ear's response more closely than the linear frequency scale. Mel Bands analysis involves mapping the FFT frequency bins to the Mel scale and computing the energy in each Mel band. This way the "magnitudes" of each Mel band represent a, roughly, equal amount of perceptual frequency space (unlike the FFT).
+
+    This implementation follows the approach used in the [Librosa](https://librosa.org/) library. Just like Librosa, this implementation uses the "slaney" normalization for the Mel filter banks. "Slaney-style" mel refers to the method described by Malcolm Slaney in his paper ["Auditory Toolbox"](https://engineering.purdue.edu/~malcolm/interval/1998-010/) where the weights are normalized such that the area under each mel filter is equal. Slaney mel filter "triangles" all have equal area ([visualization](https://www.youtube.com/watch?v=UCLlVAj0PPY)), which helps to ensure that the energy in each mel band is comparable.
 
     Parameters:
         num_bands: The number of mel bands to compute.
         min_freq: The minimum frequency (in Hz) to consider when computing the mel bands.
         max_freq: The maximum frequency (in Hz) to consider when computing the mel bands.
-        fft_size: The size of the FFT used to compute the mel bands.
-        htk: If True, use HTK formula to compute mel frequencies. TODO: what is the HTK forumla.
+        fft_size: The size of the FFT being used to compute the mel bands.
     """
-    # "slaney" normalization is the default for Librosa and is the only supported normalization method here.
-    # Librosa also supports L1-L2 normalization.
 
     var world: LegacyUnsafePointer[MMMWorld]
     var weights: List[List[Float64]]
@@ -298,9 +299,6 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
 
     fn __init__(out self, world: LegacyUnsafePointer[MMMWorld]):
         self.world = world
-
-        # https://librosa.org/doc/main/generated/librosa.filters.mel.html
-        # https://github.com/librosa/librosa/blob/e403272fc984bc4aeb316e5f15899042224bb9fe/librosa/filters.py#L128
 
         self.weights = List[List[Float64]](length=num_bands,fill=List[Float64](length=(self.fft_size // 2) + 1, fill=0.0))
         self.bands = List[Float64](length=num_bands, fill=0.0)
@@ -322,16 +320,12 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
             self.bands[i] = band_energy
     
     fn make_weights(mut self):
-        """Compute the mel filter bank weights.
-
-        Returns:
-            A 2D list where each sublist contains the weights for a mel band.
-        """
+        """Compute the mel filter bank weights."""
 
         fftfreqs = fft_frequencies(sr=self.world[].sample_rate, n_fft=self.fft_size)
 
         # 'Center freqs' of mel bands - uniformly spaced between limits
-        mel_f = mel_frequencies(num_bands + 2, fmin=min_freq, fmax=max_freq, htk=htk)
+        mel_f = mel_frequencies(num_bands + 2, fmin=min_freq, fmax=max_freq)
 
         fdiff = diff(mel_f)
         ramps = subtract_outer(mel_f, fftfreqs)

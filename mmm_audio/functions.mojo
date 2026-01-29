@@ -708,7 +708,7 @@ fn fft_frequencies(sr: Float64, n_fft: Int) -> List[Float64]:
         freqs[i] = Float64(i) * binHz
     return freqs^
     
-fn mel_frequencies(n_mels: Int = 128, fmin: Float64 = 0.0, fmax: Float64 = 20000.0, htk: Bool = False) -> List[Float64]:
+fn mel_frequencies(n_mels: Int = 128, fmin: Float64 = 0.0, fmax: Float64 = 20000.0) -> List[Float64]:
     """Compute an array of acoustic frequencies tuned to the mel scale.
 
     The mel scale is a quasi-logarithmic function of acoustic frequency
@@ -748,47 +748,26 @@ fn mel_frequencies(n_mels: Int = 128, fmin: Float64 = 0.0, fmax: Float64 = 20000
         Minimum frequency (Hz).
     fmax : Float64 >= 0 [scalar]
         Maximum frequency (Hz).
-    htk : Bool
-        If True, use HTK formula to convert Hz to mel.
-        Otherwise (False), use Slaney's Auditory Toolbox.
 
     Returns
     -------
     bin_frequencies : ndarray [shape=(n_mels,)]
         Vector of ``n_mels`` frequencies in Hz which are uniformly spaced on the Mel
         axis.
-
-    Examples
-    --------
-    >>> librosa.mel_frequencies(n_mels=40)
-    array([     0.   ,     85.317,    170.635,    255.952,
-              341.269,    426.586,    511.904,    597.221,
-              682.538,    767.855,    853.173,    938.49 ,
-             1024.856,   1119.114,   1222.042,   1334.436,
-             1457.167,   1591.187,   1737.532,   1897.337,
-             2071.84 ,   2262.393,   2470.47 ,   2697.686,
-             2945.799,   3216.731,   3512.582,   3835.643,
-             4188.417,   4573.636,   4994.285,   5453.621,
-             5955.205,   6502.92 ,   7101.009,   7754.107,
-             8467.272,   9246.028,  10096.408,  11025.   ])
-
     """
-    # 'Center freqs' of mel bands - uniformly spaced between limits
-    # https://github.com/librosa/librosa/blob/e403272fc984bc4aeb316e5f15899042224bb9fe/librosa/core/convert.py#L1648
-    # [TODO] test against: librosa.mel_frequencies(n_mels=40)
-    min_mel = hz_to_mel(fmin, htk=htk)
-    max_mel = hz_to_mel(fmax, htk=htk)
+    min_mel = hz_to_mel(fmin)
+    max_mel = hz_to_mel(fmax)
 
     mels = linspace(min_mel, max_mel, n_mels)
 
     var hz = List[Float64](length=n_mels, fill=0.0)
     for i in range(n_mels):
-        hz[i] = mel_to_hz(mels[i], htk=htk)
+        hz[i] = mel_to_hz(mels[i])
     return hz^
 
-fn hz_to_mel[num_chans: Int = 1](freq: SIMD[DType.float64,num_chans], htk: SIMD[DType.bool,num_chans] = False) -> SIMD[DType.float64,num_chans]:
+fn hz_to_mel[num_chans: Int = 1](freq: SIMD[DType.float64,num_chans]) -> SIMD[DType.float64,num_chans]:
 # https://github.com/librosa/librosa/blob/e403272fc984bc4aeb316e5f15899042224bb9fe/librosa/core/convert.py#L1180C1-L1234C16
-    """Convert Hz to Mels
+    """Convert Hz to Mels.
 
     Examples
     --------
@@ -814,30 +793,27 @@ fn hz_to_mel[num_chans: Int = 1](freq: SIMD[DType.float64,num_chans], htk: SIMD[
     mel_to_hz
     """
 
-    if htk:
-        return 2595.0 * log10(1.0 + freq / 700.0)
+    # "HTK" is a different way to compute mels. It is not implemented in MMMAudio, but
+    # commented out here in case it becomes useful in the future.
+    # if htk:
+    #     return 2595.0 * log10(1.0 + freq / 700.0)
 
-    # Fill in the linear part
     f_min = 0.0
     f_sp = 200.0 / 3
 
     mels = (freq - f_min) / f_sp
-
-    # Fill in the log-scale part
 
     min_log_hz = 1000.0  # beginning of log region (Hz)
     min_log_mel = (min_log_hz - f_min) / f_sp  # same (Mels)
     logstep = log(6.4) / 27.0  # step size for log region
 
     if freq >= min_log_hz:
-        # If we have scalar data, heck directly
         mels = min_log_mel + log(freq / min_log_hz) / logstep
 
     return mels
 
-fn mel_to_hz[num_chans: Int = 1](mel: SIMD[DType.float64,num_chans], htk: SIMD[DType.bool,num_chans] = False) -> SIMD[DType.float64,num_chans]:
-# https://github.com/librosa/librosa/blob/e403272fc984bc4aeb316e5f15899042224bb9fe/librosa/core/convert.py#L1254C1-L1307C1
-    """Convert mel bin numbers to frequencies
+fn mel_to_hz[num_chans: Int = 1](mel: SIMD[DType.float64,num_chans]) -> SIMD[DType.float64,num_chans]:
+    """Convert mel bin numbers to frequencies.
 
     Examples
     --------
@@ -851,8 +827,6 @@ fn mel_to_hz[num_chans: Int = 1](mel: SIMD[DType.float64,num_chans], htk: SIMD[D
     ----------
     mels : Float64
         mel bins to convert
-    htk : bool
-        use HTK formula instead of Slaney
 
     Returns
     -------
@@ -864,8 +838,10 @@ fn mel_to_hz[num_chans: Int = 1](mel: SIMD[DType.float64,num_chans], htk: SIMD[D
     hz_to_mel
     """
 
-    if htk:
-        return 700.0 * (10.0 ** (mel / 2595.0) - 1.0)
+    # "HTK" is a different way to compute mels. It is not implemented in MMMAudio, but
+    # commented out here in case it becomes useful in the future.
+    # if htk:
+    #     return 700.0 * (10.0 ** (mel / 2595.0) - 1.0)
 
     # Fill in the linear scale
     f_min = 0.0
@@ -878,7 +854,6 @@ fn mel_to_hz[num_chans: Int = 1](mel: SIMD[DType.float64,num_chans], htk: SIMD[D
     logstep = log(6.4) / 27.0  # step size for log region
 
     if mel >= min_log_mel:
-        # If we have scalar data, check directly
         freq = min_log_hz * exp(logstep * (mel - min_log_mel))
 
     return freq
