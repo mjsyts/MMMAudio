@@ -3,21 +3,20 @@ from mmm_audio import *
 comptime two_pi = 2.0 * pi
 
 struct SpectralFreezeWindow[window_size: Int](FFTProcessable):
-    var world: LegacyUnsafePointer[MMMWorld]
+    var world: World
     var m: Messenger
     var bin: Int64
     var freeze_gate: Bool
     var stored_phases: List[SIMD[DType.float64, 2]]
     var stored_mags: List[SIMD[DType.float64, 2]]
 
-    fn __init__(out self, world: LegacyUnsafePointer[MMMWorld], namespace: Optional[String] = None):
+    fn __init__(out self, world: World, namespace: Optional[String] = None):
         self.world = world
-        self.bin = (window_size // 2) + 1
+        self.bin = (Self.window_size // 2) + 1
         self.m = Messenger(world, namespace)
         self.freeze_gate = False
-        self.stored_phases = [SIMD[DType.float64, 2](0.0) for _ in range(window_size)]
-        self.stored_mags = [SIMD[DType.float64, 2](0.0) for _ in range(window_size)]
-
+        self.stored_phases = [SIMD[DType.float64, 2](0.0) for _ in range(Self.window_size)]
+        self.stored_mags = [SIMD[DType.float64, 2](0.0) for _ in range(Self.window_size)]
     fn get_messages(mut self) -> None:
         self.m.update(self.freeze_gate, "freeze_gate")
 
@@ -27,7 +26,7 @@ struct SpectralFreezeWindow[window_size: Int](FFTProcessable):
             self.stored_mags = mags.copy()
         else:
             mags = self.stored_mags.copy()
-        for i in range(window_size):
+        for i in range(Self.window_size):
             phases[i] += SIMD[DType.float64, 2](random_float64(0, two_pi), random_float64(0, two_pi))
             
 
@@ -37,22 +36,22 @@ struct SpectralFreeze[window_size: Int](Movable, Copyable):
 
     """
 
-    comptime hop_size = window_size // 4
-    var world: LegacyUnsafePointer[MMMWorld]
-    var freeze: FFTProcess[SpectralFreezeWindow[window_size],window_size,Self.hop_size,WindowType.hann,WindowType.hann]
+    comptime hop_size = Self.window_size // 4
+    var world: World
+    var freeze: FFTProcess[SpectralFreezeWindow[Self.window_size],Self.window_size,Self.hop_size,WindowType.hann,WindowType.hann]
     var m: Messenger
     var freeze_gate: Bool
     var asr: ASREnv
 
-    fn __init__(out self, world: LegacyUnsafePointer[MMMWorld], namespace: Optional[String] = None):
+    fn __init__(out self, world: World, namespace: Optional[String] = None):
         self.world = world
         self.freeze = FFTProcess[
-                SpectralFreezeWindow[window_size],
-                window_size,
-                self.hop_size,
+                SpectralFreezeWindow[Self.window_size],
+                Self.window_size,
+                Self.hop_size,
                 WindowType.hann,
                 WindowType.hann
-            ](self.world,process=SpectralFreezeWindow[window_size](self.world, namespace))
+            ](self.world,process=SpectralFreezeWindow[Self.window_size](self.world, namespace))
         self.m = Messenger(self.world, namespace)
         self.freeze_gate = False
         self.asr = ASREnv(self.world)
@@ -67,14 +66,14 @@ struct SpectralFreeze[window_size: Int](Movable, Copyable):
 comptime window_size = 2048
 
 struct SpectralFreezeExample(Movable, Copyable):
-    var world: LegacyUnsafePointer[MMMWorld]
+    var world: World
     var buffer: Buffer
     var play_buf: Play   
     var spectral_freeze: SpectralFreeze[window_size]
     var m: Messenger
     var stereo_switch: Bool
 
-    fn __init__(out self, world: LegacyUnsafePointer[MMMWorld], namespace: Optional[String] = None):
+    fn __init__(out self, world: World, namespace: Optional[String] = None):
         self.world = world
         self.buffer = Buffer.load("resources/Shiverer.wav")
         self.play_buf = Play(self.world) 

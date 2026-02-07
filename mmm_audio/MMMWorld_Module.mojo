@@ -10,78 +10,7 @@ from .Messenger_Module import MessengerManager
 comptime MFloat[N: Int = 1] = SIMD[DType.float64, N]
 comptime MInt[N: Int = 1] = SIMD[DType.int64, N]
 comptime MBool[N: Int = 1] = SIMD[DType.bool, N]
-
-# struct MMMFloat[N: Int = 1](Movable, Copyable):
-#     """A SIMD vector of Float64 values used throughout the MMMAudio library.
-
-#     This is an alias for `SIMD[DType.float64, N]` where `N` is the number of lanes in the SIMD vector.
-#     It is used to represent audio signals and parameters that can be processed in parallel.
-
-#     Example usage:
-#         var freq: MMMFloat[4] = MMMFloat[4](440.0, 550.0, 660.0, 770.0)
-#     """
-#     var data: SIMD[DType.float64, N]
-
-#     fn __init__(out self, *values: Float64):
-#         """Initializes the MMMFloat vector with the given values.
-
-#         Args:
-#             values: The Float64 values to initialize the vector with. The number of values must match `N`.
-#         """
-#         self.data = SIMD[DType.float64, N](0.0)
-#         for i in range(min(values.__len__(), N)):
-#             self.data[i] = values[i]
-
-#     fn __repr__(self) -> String:
-#         return "MMMFloat" + String(self.data)
-
-# struct MMMInt[N: Int = 1](Movable, Copyable):
-#     """A SIMD vector of Int64 values used throughout the MMMAudio library.
-
-#     This is an alias for `SIMD[DType.int64, N]` where `N` is the number of lanes in the SIMD vector.
-#     It is used to represent integer parameters that can be processed in parallel.
-
-#     Example usage:
-#         var indices: MMMInt[4] = MMMInt[4](0, 1, 2, 3)
-#     """
-#     var data: SIMD[DType.int64, N]
-
-#     fn __init__(out self, *values: Int64):
-#         """Initializes the MMMInt vector with the given values.
-
-#         Args:
-#             values: The Int64 values to initialize the vector with. The number of values must match `N`.
-#         """
-#         self.data = SIMD[DType.int64, N](0)
-#         for i in range(min(values.__len__(), N)):
-#             self.data[i] = values[i]
-
-#     fn __repr__(self) -> String:
-#         return "MMMInt" + String(self.data)
-
-# struct MMMBool[N: Int = 1](Movable, Copyable):
-#     """A SIMD vector of Bool values used throughout the MMMAudio library.
-
-#     This is an alias for `SIMD[DType.bool, N]` where `N` is the number of lanes in the SIMD vector.
-#     It is used to represent boolean parameters that can be processed in parallel.
-
-#     Example usage:
-#         var flags: MMMBool[4] = MMMBool[4](True, False, True, False)
-#     """
-#     var data: SIMD[DType.bool, N]
-
-#     fn __init__(out self, *values: Bool):
-#         """Initializes the MMMBool vector with the given values.
-
-#         Args:
-#             values: The Bool values to initialize the vector with. The number of values must match `N`.
-#         """
-#         self.data = SIMD[DType.bool, N](False)
-#         for i in range(min(values.__len__(), N)):
-#             self.data[i] = values[i]
-
-#     fn __repr__(self) -> String:
-#         return "MMMBool" + String(self.data)
+comptime World = LegacyUnsafePointer[mut=True, MMMWorld]
 
 struct MMMWorld(Representable, Movable, Copyable):
     """The MMMWorld struct holds global audio processing parameters and state.
@@ -113,7 +42,7 @@ struct MMMWorld(Representable, Movable, Copyable):
 
     var messengerManager: MessengerManager
 
-    # var pointer_to_self: LegacyUnsafePointer[MMMWorld]
+    # var pointer_to_self: World
     var last_print_time: Float64
     var print_flag: Int64
     var last_print_flag: Int64
@@ -148,7 +77,7 @@ struct MMMWorld(Representable, Movable, Copyable):
         # I don't know why, but objects don't see these as updated? maybe it is copying the world when I pass it?
         self.mouse_x = 0.0
         self.mouse_y = 0.0
-        self.screen_dims = List[Float64](0.0, 0.0)  # Initialize screen dimensions with zeros
+        self.screen_dims = [0.0, 0.0]  # Initialize screen dimensions with zeros
 
         self.block_state = 0
 

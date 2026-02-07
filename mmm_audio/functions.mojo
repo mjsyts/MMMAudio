@@ -204,6 +204,8 @@ fn lincurve[num_chans: Int, //
 
     return result
 
+fn py_to_float64(py_float: PythonObject) raises -> Float64:
+    return Float64(py=py_float)
 
 @always_inline
 fn clip[

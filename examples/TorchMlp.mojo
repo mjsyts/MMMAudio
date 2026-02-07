@@ -8,7 +8,7 @@ comptime num_simd = (model_out_size + simd_width - 1) // simd_width  # Calculate
 
 # THE SYNTH - is imported from TorchSynth.mojo in this directory
 struct TorchSynth(Movable, Copyable):
-    var world: LegacyUnsafePointer[MMMWorld]  # Pointer to the MMMWorld instance
+    var world: World  # Pointer to the MMMWorld instance
     var osc1: Osc[1, 2, 1]
     var osc2: Osc[1, 2, 1]
 
@@ -18,18 +18,18 @@ struct TorchSynth(Movable, Copyable):
 
     var fb: Float64
 
-    var latch1: Latch
-    var latch2: Latch
-    var impulse1: Phasor
-    var impulse2: Phasor
+    var latch1: Latch[]
+    var latch2: Latch[]
+    var impulse1: Phasor[]
+    var impulse2: Phasor[]
 
-    var filt1: SVF
-    var filt2: SVF
+    var filt1: SVF[]
+    var filt2: SVF[]
 
-    var dc1: DCTrap
-    var dc2: DCTrap
+    var dc1: DCTrap[]
+    var dc2: DCTrap[]
 
-    fn __init__(out self, world: LegacyUnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
         self.osc1 = Osc[1, 2, 1](self.world)
         self.osc2 = Osc[1, 2, 1](self.world)
@@ -61,19 +61,10 @@ struct TorchSynth(Movable, Copyable):
 
         self.model.next()  # Run the model inference
 
-        @parameter
-        for i in range(num_simd):
-            # process each lag group
-            model_output_simd = SIMD[DType.float64, simd_width](0.0)
-            for j in range(simd_width):
-                idx = i * simd_width + j
-                if idx < model_out_size:
-                    model_output_simd[j] = self.model.model_output[idx]
-            lagged_output = self.lags[i].next(model_output_simd)
-            for j in range(simd_width):
-                idx = i * simd_width + j
-                if idx < model_out_size:
-                    self.lag_vals[idx] = lagged_output[j]
+        for i in range(model_out_size):
+            self.lag_vals[i] = self.model.model_output[i]
+
+        Lag.par_process[num_simd, simd_width](self.lags, self.lag_vals)
 
         # uncomment to see the output of the model
         # self.world[].print(self.lag_vals[0], self.lag_vals[1], self.lag_vals[2], self.lag_vals[3], self.lag_vals[4], self.lag_vals[5], self.lag_vals[6], self.lag_vals[7], self.lag_vals[8], self.lag_vals[9], self.lag_vals[10], self.lag_vals[11], self.lag_vals[12], self.lag_vals[13], self.lag_vals[14], self.lag_vals[15])
@@ -121,10 +112,10 @@ struct TorchSynth(Movable, Copyable):
 # THE GRAPH
 
 struct TorchMlp(Movable, Copyable):
-    var world: LegacyUnsafePointer[MMMWorld]
+    var world: World
     var torch_synth: TorchSynth  # Instance of the TorchSynth
 
-    fn __init__(out self, world: LegacyUnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
 
         self.torch_synth = TorchSynth(self.world)  # Initialize the TorchSynth with the world instance

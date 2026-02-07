@@ -22,7 +22,7 @@ struct Windows(Movable, Copyable):
         self.kaiser = kaiser_window(self.size, 5.0)
         self.pan2 = pan2_window(256)
 
-    fn at_phase[window_type: Int64,interp: Int = Interp.none](self, world: LegacyUnsafePointer[MMMWorld], phase: Float64, prev_phase: Float64 = 0.0) -> Float64:
+    fn at_phase[window_type: Int64,interp: Int = Interp.none](self, world: World, phase: Float64, prev_phase: Float64 = 0.0) -> Float64:
         """Get window value at given phase (0.0 to 1.0) for specified window type."""
 
         @parameter
@@ -254,3 +254,4 @@ fn pan2_window(size: Int64) -> List[SIMD[DType.float64, 2]]:
         var angle = (pi / 2.0) * Float64(i) / Float64(size-1)
         table.append(cos(SIMD[DType.float64, 2](angle, (pi / 2.0) - angle)))
     return table^
+
