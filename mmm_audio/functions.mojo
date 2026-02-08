@@ -1,5 +1,4 @@
-from random import random_float64
-from math import *
+from mmm_audio import *
 
 struct Changed(Representable, Movable, Copyable):
     """Detect changes in a Bool value."""
@@ -672,3 +671,55 @@ fn sign[num_chans:Int,//](x: SIMD[DType.float64, num_chans]) -> SIMD[DType.float
     nmask:SIMD[DType.bool, num_chans] = x.lt(0.0)
 
     return pmask.select(SIMD[DType.float64, num_chans](1.0), nmask.select(SIMD[DType.float64, num_chans](-1.0), SIMD[DType.float64, num_chans](0.0)))
+
+fn linspace(start: Float64, stop: Float64, num: Int) -> List[Float64]:
+    """Create evenly spaced values between start and stop.
+    
+    Args:
+        start: The starting value.
+        stop: The ending value.
+        num: Number of samples to generate.
+    
+    Returns:
+        A List of Float64 values evenly spaced between start and stop.
+    """
+    var result = List[Float64](length=num, fill=0.0)
+    if num == 1:
+        result[0] = start
+        return result^
+    
+    var step = (stop - start) / Float64(num - 1)
+    for i in range(num):
+        result[i] = start + Float64(i) * step
+    return result^
+
+fn diff(arr: List[Float64]) -> List[Float64]:
+    """Compute differences between consecutive elements.
+    
+    Args:
+        arr: Input list of Float64 values.
+    
+    Returns:
+        A new list with length len(arr) - 1 containing differences.
+    """
+    var result = List[Float64](length=len(arr) - 1, fill=0.0)
+    for i in range(len(arr) - 1):
+        result[i] = arr[i + 1] - arr[i]
+    return result^
+
+fn subtract_outer(a: List[Float64], b: List[Float64]) -> List[List[Float64]]:
+    """Compute outer subtraction: a[i] - b[j] for all i, j.
+    
+    Args:
+        a: First input list (will be rows).
+        b: Second input list (will be columns).
+    
+    Returns:
+        A 2D list where result[i][j] = a[i] - b[j].
+    """
+    var result = List[List[Float64]](length=len(a), fill=List[Float64]())
+    for i in range(len(a)):
+        result[i] = List[Float64](length=len(b), fill=0.0)
+        for j in range(len(b)):
+            result[i][j] = a[i] - b[j]
+    return result^
