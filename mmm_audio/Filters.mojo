@@ -949,7 +949,7 @@ struct IIR[num_chans: Int = 1](Movable, Copyable):
         Args:
             input: The input signal to process.
             coeffs: The filter coefficients.
-            
+
         Returns:
             The next sample of the filtered output.
         """

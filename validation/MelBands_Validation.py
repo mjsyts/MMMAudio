@@ -1,3 +1,5 @@
+# run this from directly inside the "validation" directory, not from project root
+
 import librosa
 import os
 import csv

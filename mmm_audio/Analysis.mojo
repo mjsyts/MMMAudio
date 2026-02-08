@@ -1,9 +1,6 @@
 from mmm_audio import *
 from math import ceil, floor, log2, log, exp, sqrt
 from math import sqrt
-from python import Python
-from python import PythonObject
-from testing import assert_almost_equal
 
 @doc_private
 fn parabolic_refine(prev: Float64, cur: Float64, next: Float64) -> Tuple[Float64, Float64]:
@@ -282,9 +279,7 @@ struct RMS(BufferedProcessable):
 struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64 = 20000.0, fft_size: Int = 1024](FFTProcessable):
     """Mel Bands analysis.
 
-    The Mel scale is a perceptual scale of pitches that approximates the human ear's response more closely than the linear frequency scale. Mel Bands analysis involves mapping the FFT frequency bins to the Mel scale and computing the energy in each Mel band. This way the "magnitudes" of each Mel band represent a, roughly, equal amount of perceptual frequency space (unlike the FFT).
-
-    This implementation follows the approach used in the [Librosa](https://librosa.org/) library. Just like Librosa, this implementation uses the "slaney" normalization for the Mel filter banks. "Slaney-style" mel refers to the method described by Malcolm Slaney in his paper ["Auditory Toolbox"](https://engineering.purdue.edu/~malcolm/interval/1998-010/) where the weights are normalized such that the area under each mel filter is equal. Slaney mel filter "triangles" all have equal area ([visualization](https://www.youtube.com/watch?v=UCLlVAj0PPY)), which helps to ensure that the energy in each mel band is comparable.
+    This implementation follows the approach used in the [Librosa](https://librosa.org/) library. 
 
     Parameters:
         num_bands: The number of mel bands to compute.
@@ -293,15 +288,15 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
         fft_size: The size of the FFT being used to compute the mel bands.
     """
 
-    var world: LegacyUnsafePointer[MMMWorld]
+    var world: World
     var weights: List[List[Float64]]
     var bands: List[Float64]
 
     fn __init__(out self, world: LegacyUnsafePointer[MMMWorld]):
         self.world = world
 
-        self.weights = List[List[Float64]](length=num_bands,fill=List[Float64](length=(self.fft_size // 2) + 1, fill=0.0))
-        self.bands = List[Float64](length=num_bands, fill=0.0)
+        self.weights = List[List[Float64]](length=Self.num_bands,fill=List[Float64](length=(self.fft_size // 2) + 1, fill=0.0))
+        self.bands = List[Float64](length=Self.num_bands, fill=0.0)
         self.make_weights()
 
     fn next_frame(mut self, mut mags: List[Float64], mut phases: List[Float64]) -> None:
@@ -309,28 +304,31 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
 
         This function is to be used by FFTProcess if MelBands is passed as the "process".
 
+        Nothing is returned from this function, but the computed mel band values are stored in self.bands.
+
         Args:
             mags: The input magnitudes as a List of Float64.
             phases: The input phases as a List of Float64.
         """
-        for i in range(num_bands):
+        for i in range(Self.num_bands):
             band_energy: Float64 = 0.0
             for j in range(len(mags)):
                 band_energy += self.weights[i][j] * mags[j]
             self.bands[i] = band_energy
     
+    @doc_private
     fn make_weights(mut self):
         """Compute the mel filter bank weights."""
 
-        fftfreqs = fft_frequencies(sr=self.world[].sample_rate, n_fft=self.fft_size)
+        fftfreqs = RealFFT.fft_frequencies(sr=self.world[].sample_rate, n_fft=self.fft_size)
 
         # 'Center freqs' of mel bands - uniformly spaced between limits
-        mel_f = mel_frequencies(num_bands + 2, fmin=min_freq, fmax=max_freq)
+        mel_f = MelBands.mel_frequencies(Self.num_bands + 2, fmin=Self.min_freq, fmax=Self.max_freq)
 
         fdiff = diff(mel_f)
         ramps = subtract_outer(mel_f, fftfreqs)
 
-        for i in range(num_bands):
+        for i in range(Self.num_bands):
             lower: List[Float64] = List[Float64](length=len(ramps[i]), fill=0.0)
             for j in range(len(ramps[i])):
                 lower[j] = -ramps[i][j] / fdiff[i]
@@ -342,10 +340,97 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
                 self.weights[i][j] = max(0.0, min(lower[j], upper[j]))
 
         # Slaney-style mel
-        var enorm = List[Float64](length=num_bands, fill=0.0)
-        for i in range(num_bands):
+        var enorm = List[Float64](length=Self.num_bands, fill=0.0)
+        for i in range(Self.num_bands):
             enorm[i] = 2.0 / (mel_f[i + 2] - mel_f[i])
         
-        for i in range(num_bands):
+        for i in range(Self.num_bands):
             for j in range(len(self.weights[i])):
                 self.weights[i][j] *= enorm[i]
+
+    @staticmethod
+    fn mel_frequencies(n_mels: Int = 128, fmin: Float64 = 0.0, fmax: Float64 = 20000.0) -> List[Float64]:
+        """Compute an array of acoustic frequencies tuned to the mel scale.
+
+        This implementation is based on Librosa's eponymous [function](https://librosa.org/doc/main/generated/librosa.mel_frequencies.html).  For more information on mel frequencies space see the [MelBands](Analysis.md/#struct-melbands) documentation.
+
+        Args:
+            n_mels: The number of mel bands to generate.
+            fmin: The lowest frequency (in Hz).
+            fmax: The highest frequency (in Hz).
+
+        Returns:
+            A List of Float64 representing the center frequencies of each mel band.
+        """
+
+        min_mel = MelBands.hz_to_mel(fmin)
+        max_mel = MelBands.hz_to_mel(fmax)
+
+        mels = linspace(min_mel, max_mel, n_mels)
+
+        var hz = List[Float64](length=n_mels, fill=0.0)
+        for i in range(n_mels):
+            hz[i] = MelBands.mel_to_hz(mels[i])
+        return hz^
+
+    @staticmethod
+    fn hz_to_mel[num_chans: Int = 1](freq: SIMD[DType.float64,num_chans]) -> SIMD[DType.float64,num_chans]:
+        """Convert Hz to Mels.
+
+        This implementation is based on Librosa's eponymous [function](https://librosa.org/doc/main/generated/librosa.hz_to_mel.html). For more information on mel frequencies space see the [MelBands](Analysis.md/#struct-melbands) documentation.
+
+        Parameters:
+            num_chans: Size of the SIMD vector. This parameter is inferred by the values passed to the function.
+
+        Args:
+            freq: The frequencies in Hz to convert.
+        
+        Returns:
+            The corresponding mel frequencies.
+        """
+
+        # "HTK" is a different way to compute mels. It is not implemented in MMMAudio, but
+        # commented out here in case it becomes useful in the future.
+        # if htk:
+        #     return 2595.0 * log10(1.0 + freq / 700.0)
+
+        f_min = 0.0
+        f_sp = 200.0 / 3
+
+        mels = (freq - f_min) / f_sp
+
+        min_log_hz = 1000.0  # beginning of log region (Hz)
+        min_log_mel = (min_log_hz - f_min) / f_sp  # same (Mels)
+        logstep = log(6.4) / 27.0  # step size for log region
+
+        if freq >= min_log_hz:
+            mels = min_log_mel + log(freq / min_log_hz) / logstep
+
+        return mels
+
+    @staticmethod
+    fn mel_to_hz[num_chans: Int = 1](mel: SIMD[DType.float64,num_chans]) -> SIMD[DType.float64,num_chans]:
+        """Convert mel bin numbers to frequencies.
+
+        This implementation is based on Librosa's eponymous [function](https://librosa.org/doc/main/generated/librosa.mel_to_hz.html). For more information on mel frequencies space see the [MelBands](Analysis.md/#struct-melbands) documentation.
+        """
+
+        # "HTK" is a different way to compute mels. It is not implemented in MMMAudio, but
+        # commented out here in case it becomes useful in the future.
+        # if htk:
+        #     return 700.0 * (10.0 ** (mel / 2595.0) - 1.0)
+
+        # Fill in the linear scale
+        f_min = 0.0
+        f_sp = 200.0 / 3
+        freq = f_min + f_sp * mel
+
+        # And now the nonlinear scale
+        min_log_hz = 1000.0  # beginning of log region (Hz)
+        min_log_mel = (min_log_hz - f_min) / f_sp  # same (Mels)
+        logstep = log(6.4) / 27.0  # step size for log region
+
+        if mel >= min_log_mel:
+            freq = min_log_hz * exp(logstep * (mel - min_log_mel))
+
+        return freq

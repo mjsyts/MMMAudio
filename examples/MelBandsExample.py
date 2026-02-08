@@ -11,6 +11,6 @@ ma.send_float("sines_vol",-18.0) # db
 ma.send_float("mix",1.0) 
 ma.send_float("mix",0.0)
 ma.send_float("mix",0.7)
-ma.send_int("update_modulus",40) # higher number = slower updates
+ma.send_int("update_modulus",80) # higher number = slower updates
 
 ma.stop_audio()

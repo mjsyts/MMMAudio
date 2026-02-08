@@ -3,21 +3,21 @@ from mmm_audio import *
 comptime num_bands: Int = 100
 
 struct MelBandsExample(Movable, Copyable):
-    var world: LegacyUnsafePointer[MMMWorld]
+    var world: World
     var buffer: Buffer
     var playBuf: Play
     var analyzer: FFTProcess[MelBands[num_bands,fft_size=1024],1024,512,WindowType.hann]
     var m: Messenger
     var viz_mul: Float64
     var mix: Float64
-    var oscs: List[SinOsc]
+    var oscs: List[SinOsc[]]
     var freqs: List[Float64]
-    var lags: List[Lag]
+    var lags: List[Lag[]]
     var sines_vol: Float64
     var print_counter: Int
     var update_modulus: Int64
 
-    fn __init__(out self, world: LegacyUnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
         self.buffer = Buffer.load("resources/Shiverer.wav")
         self.playBuf = Play(self.world)
@@ -26,7 +26,7 @@ struct MelBandsExample(Movable, Copyable):
         self.m = Messenger(self.world)
         self.viz_mul = 500.0
         self.mix = 1.0
-        self.lags = List[Lag]()
+        self.lags = List[Lag[]]()
         self.sines_vol = -18.0
         self.print_counter = 0
         self.update_modulus = 50
@@ -34,11 +34,11 @@ struct MelBandsExample(Movable, Copyable):
         for _ in range(num_bands):
             self.lags.append(Lag(self.world,512.0 / self.world[].sample_rate))
 
-        self.oscs = List[SinOsc]()
+        self.oscs = List[SinOsc[]]()
         for i in range(num_bands):
             self.oscs.append(SinOsc(self.world))
 
-        self.freqs = mel_frequencies(num_bands,20.0,20000.0)
+        self.freqs = MelBands.mel_frequencies(num_bands,20.0,20000.0)
 
     fn next(mut self) -> SIMD[DType.float64, 2]:
         
