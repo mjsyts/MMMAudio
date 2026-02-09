@@ -73,10 +73,10 @@ def dct_results():
 
 
 if __name__ == "__main__":
-    # mel_to_hz_librosa_results()
-    # np_linspace_results()
-    # mel_frequencies_results()
-    # fft_frequencies_results()
-    # make_mel_bands_weights_files()
-    # mel_bands_weights_results(40, 512, 44100)
+    mel_to_hz_librosa_results()
+    np_linspace_results()
+    mel_frequencies_results()
+    fft_frequencies_results()
+    make_mel_bands_weights_files()
+    mel_bands_weights_results(40, 512, 44100)
     dct_results()
