@@ -32,7 +32,7 @@ def test_mel_to_hz():
     mels = SIMD[DType.float64, 8](100.0, 200.0, 300.0, 400.0, 500.0, 600.0, 700.0, 800.0)
     mmm_results = SIMD[DType.float64, 8]()
     for i in range(8):
-        mmm_results[i] = mel_to_hz(mels[i])
+        mmm_results[i] = MelBands.mel_to_hz(mels[i])
     assert_almost_equal(mmm_results, librosa_results, "Test: mel_to_hz function failed")
 
 def test_hz_to_mel():
@@ -41,7 +41,7 @@ def test_hz_to_mel():
     hz_values = SIMD[DType.float64, 8](345123.07093968056, 334060977.5717811, 323353453109.8285, 312989132696839.3, 3.029570157490985e+17, 2.932464542802523e+20, 2.8384714159964454e+23, 2.747491013729005e+26)
     mmm_results = SIMD[DType.float64, 8]()
     for i in range(8):
-        mmm_results[i] = hz_to_mel(hz_values[i])
+        mmm_results[i] = MelBands.hz_to_mel(hz_values[i])
     assert_almost_equal(mmm_results, librosa_results, "Test: hz_to_mel function failed")
 
 def test_diff():
@@ -66,7 +66,7 @@ def test_mel_frequencies():
     num_mel_bins = 32
     fmin = 20.0
     fmax = 20000.0
-    result = mel_frequencies(num_mel_bins, fmin, fmax)
+    result = MelBands.mel_frequencies(num_mel_bins, fmin, fmax)
     result_simd = SIMD[DType.float64, 32]()
     for i in range(32):
         result_simd[i] = result[i]
@@ -76,24 +76,33 @@ def test_mel_frequencies():
 def test_fft_frequencies():
     sample_rate = 44100.0
     n_fft = 512
-    result = fft_frequencies(sample_rate, n_fft)
+    result = RealFFT.fft_frequencies(sample_rate, n_fft)
     result_simd = SIMD[DType.float64, 8]()
     for i in range(8):
         result_simd[i] = result[i]
     expected = SIMD[DType.float64, 8](0.0, 86.1328125, 172.265625, 258.3984375, 344.53125, 430.6640625, 516.796875, 602.9296875)
     assert_almost_equal(result_simd, expected, "Test: fft_frequencies function failed")
 
-def _test_mel_bands_weights[n_mels: Int, n_fft: Int, sr: Int, htk: Bool]():
+def test_dct():
+    dct = DCT[4,3]()
+    input_vals = List[Float64]([1.0, 2.0, 3.0, 4.0])
+    output_vals = List[Float64](length=3, fill=0.0)
+    dct.apply(input_vals, output_vals)
+
+    expected = List[Float64]([5.0, -2.230442497387663, -6.280369834735101e-16])
+    for i in range(len(output_vals)):
+        assert_almost_equal(output_vals[i], expected[i], "Test: DCT coefficient mismatch")
+
+def _test_mel_bands_weights[n_mels: Int, n_fft: Int, sr: Int]():
     world = MMMWorld(sample_rate=sr)
     w = LegacyUnsafePointer(to=world)
-    melbands = MelBands[num_bands=n_mels,min_freq=20.0,max_freq=20000.0,fft_size=n_fft,htk=htk](w)
+    melbands = MelBands[num_bands=n_mels,min_freq=20.0,max_freq=20000.0,fft_size=n_fft](w)
 
     print("=======================================")
     print("Testing mel bands with parameters:")
     print("n_mels: ", n_mels)
     print("n_fft: ", n_fft)
     print("sr: ", sr)
-    print("htk: ", htk)
 
     # print("melbands weights shape: ")
     # print(len(melbands.weights))
@@ -111,7 +120,7 @@ def _test_mel_bands_weights[n_mels: Int, n_fft: Int, sr: Int, htk: Bool]():
     expected_path += "_nmels=" + String(n_mels)
     expected_path += "_fftsize=" + String(n_fft)
     expected_path += "_sr=" + String(sr)
-    expected_path += "_htk=" + String(htk) + ".csv"
+    expected_path += ".csv"
 
     # print("loading: ",expected_path)
 
@@ -143,8 +152,7 @@ def compare_long_lists[chunk_size: Int = 64](a: List[Float64], b: List[Float64],
         i += 1
 
 def test_all_mel_bands_weights():
-    _test_mel_bands_weights[40,512,44100,False]()
-    _test_mel_bands_weights[40,512,44100,True]()
+    _test_mel_bands_weights[40,512,44100]()
 
 def main():
     TestSuite.discover_tests[__functions_in_module()]().run()
