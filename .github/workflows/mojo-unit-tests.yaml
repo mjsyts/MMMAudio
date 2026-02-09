@@ -28,6 +28,10 @@ jobs:
         run: |
           pip install librosa numpy matplotlib scipy
 
+      - name: Make Directory for Results
+        run: |
+          mkdir -p examples/tests/results_for_testing_against
+
       - name: Create Results for Testing Against
         run: |
           python examples/tests/results_for_testing_against.py
