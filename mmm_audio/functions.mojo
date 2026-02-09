@@ -64,6 +64,22 @@ fn ampdb[width: Int, //](amp: SIMD[DType.float64, width]) -> SIMD[DType.float64,
     return 20.0 * log10(amp)
 
 @always_inline
+fn power_to_db(value: Float64, zero_db_ref: Float64 = 1.0, amin: Float64 = 1e-10) -> Float64:
+    """Convert a power value to decibels.
+
+    This mirrors librosa's power_to_db behavior for a single scalar: 10 * log10(max(amin, value) / zero_db_ref).
+
+    Args:
+        value: Power value to convert.
+        zero_db_ref: Reference power for 0 dB.
+        amin: Minimum value to avoid log of zero.
+
+    Returns:
+        The value in decibels.
+    """
+    return 10.0 * log10(max(value, amin) / zero_db_ref)
+
+@always_inline
 fn select[num_chans: Int, //](index: Float64, vals: SIMD[DType.float64, num_chans]) -> Float64:
     """Selects a value from a SIMD vector based on a floating-point index and using linear interpolation.
 
