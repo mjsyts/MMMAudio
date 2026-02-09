@@ -1,5 +1,5 @@
 from mmm_audio import *
-from math import ceil, floor, log2, log, exp, sqrt
+from math import ceil, floor, log2, log, exp, sqrt, cos, pi
 from math import sqrt
 
 @doc_private
@@ -276,7 +276,7 @@ struct RMS(BufferedProcessable):
             sum_sq += v * v
         return sqrt(sum_sq / Float64(len(frame)))
 
-struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64 = 20000.0, fft_size: Int = 1024](FFTProcessable):
+struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64 = 20000.0, fft_size: Int = 1024, power: Float64 = 2.0](FFTProcessable):
     """Mel Bands analysis.
 
     This implementation follows the approach used in the [Librosa](https://librosa.org/) library. 
@@ -286,6 +286,7 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
         min_freq: The minimum frequency (in Hz) to consider when computing the mel bands.
         max_freq: The maximum frequency (in Hz) to consider when computing the mel bands.
         fft_size: The size of the FFT being used to compute the mel bands.
+        power: Exponent applied to magnitudes before mel filtering (librosa default is 2.0 for power).
     """
 
     var world: World
@@ -310,10 +311,28 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
             mags: The input magnitudes as a List of Float64.
             phases: The input phases as a List of Float64.
         """
+        self.from_mags(mags)
+
+    fn from_mags(mut self, ref mags: List[Float64]):
+        """Compute the mel bands for a given list of magnitudes.
+
+        This function is useful when there is an FFT already computed, perhaps as 
+        part of a custom struct that implements the [FFTProcessable](FFTProcess.md/#trait-fftprocessable) trait.
+
+        Args:
+            mags: The input magnitudes as a List of Float64.
+        """
         for i in range(Self.num_bands):
             band_energy: Float64 = 0.0
             for j in range(len(mags)):
-                band_energy += self.weights[i][j] * mags[j]
+                var mag_val: Float64
+                if Self.power == 1.0:
+                    mag_val = mags[j]
+                elif Self.power == 2.0:
+                    mag_val = mags[j] * mags[j]
+                else:
+                    mag_val = mags[j] ** Self.power
+                band_energy += self.weights[i][j] * mag_val
             self.bands[i] = band_energy
     
     @doc_private
@@ -434,3 +453,141 @@ struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64
             freq = min_log_hz * exp(logstep * (mel - min_log_mel))
 
         return freq
+
+struct MFCC[num_coeffs: Int = 13, num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64 = 20000.0, fft_size: Int = 1024](FFTProcessable):
+    """Mel-Frequency Cepstral Coefficients (MFCC) analysis.
+
+    Parameters:
+        num_coeffs: The number of MFCC coefficients to compute.
+        num_bands: The number of mel bands to use when computing the MFCCs.
+        min_freq: The minimum frequency (in Hz) to consider when computing the MFCCs.
+        max_freq: The maximum frequency (in Hz) to consider when computing the MFCCs.
+        fft_size: The size of the FFT being used to compute the MFCCs.
+    """
+
+    var world: World
+    var mel_bands: MelBands[Self.num_bands, Self.min_freq, Self.max_freq, Self.fft_size]
+    var bands: List[Float64]
+    var dct: DCT[Self.num_bands, Self.num_coeffs]
+    var coeffs: List[Float64]
+
+    fn __init__(out self, world: World):
+        self.world = world
+        self.mel_bands = MelBands[Self.num_bands, Self.min_freq, Self.max_freq, Self.fft_size](world)
+        self.dct = DCT[Self.num_bands, Self.num_coeffs]()
+        self.bands = List[Float64](length=Self.num_bands, fill=0.0)
+        self.coeffs = List[Float64](length=Self.num_coeffs, fill=0.0)
+
+    fn next_frame(mut self, mut mags: List[Float64], mut phases: List[Float64]) -> None:
+        """Compute the MFCCs for a given FFT analysis.
+
+        This function is to be used by [FFTProcess](FFTProcess.md/#struct-fftprocess) if MFCC is passed as the "process".
+
+        Nothing is returned from this function, but the computed MFCC values are stored in self.coeffs.
+
+        Args:
+            mags: The input magnitudes as a List of Float64.
+            phases: The input phases as a List of Float64.
+        """
+        self.from_mags(mags)
+
+    fn from_mags(mut self, ref mags: List[Float64]):
+        """Compute the MFCCs for a given list of magnitudes.
+        
+        This function is useful when there is an FFT already computed, 
+        perhaps as part of a custom struct that implements the [FFTProcessable](FFTProcess.md/#trait-fftprocessable) trait.
+        
+        Nothing is returned from this function, but the computed MFCC values are stored in self.coeffs.
+
+        Args:
+            mags: The input magnitudes as a List of Float64.
+        """
+        self.mel_bands.from_mags(mags)
+        self.from_mel_bands_internal()
+
+    @doc_private
+    fn from_mel_bands_internal(mut self):
+        """Compute the MFCCs using self.mel_bands.bands.
+        """
+        comptime max_db_range: Float64 = 80.0
+
+        var max_db: Float64 = -1.0e30
+        for i in range(len(self.mel_bands.bands)):
+            var db = power_to_db(self.mel_bands.bands[i])
+            self.bands[i] = db
+            if db > max_db:
+                max_db = db
+
+        var min_db = max_db - max_db_range
+        for i in range(len(self.bands)):
+            if self.bands[i] < min_db:
+                self.bands[i] = min_db
+
+        self.dct.process(self.bands, self.coeffs)
+
+    fn from_mel_bands(mut self, ref mbands: List[Float64]):
+        """Compute the MFCCs for a given list of mel band energies.
+
+        This function is useful when there is a mel band analysis already computed, perhaps as part of a custom struct that implements the [FFTProcessable](FFTProcess.md/#trait-fftprocessable) trait.
+
+        Nothing is returned from this function, but the computed MFCC values are stored in self.coeffs.
+
+        Args:
+            mbands: The input mel band energies as a List of Float64.
+        """
+        comptime max_db_range: Float64 = 80.0
+
+        var max_db: Float64 = -1.0e30
+        # iterate over passed mel bands ref:
+        for i in range(len(mbands)):
+            var db = power_to_db(mbands[i])
+            self.bands[i] = db
+            if db > max_db:
+                max_db = db
+
+        var min_db = max_db - max_db_range
+        for i in range(len(self.bands)):
+            if self.bands[i] < min_db:
+                self.bands[i] = min_db
+
+        self.dct.process(self.bands, self.coeffs)
+
+struct DCT[input_size: Int, output_size: Int](Movable,Copyable):
+    """Compute the Discrete Cosine Transform (DCT)."""
+
+    var weights: List[List[Float64]]
+
+    fn __init__(out self):
+        self.weights = List[List[Float64]](length=Self.output_size, fill=List[Float64](length=Self.input_size, fill=0.0))
+        self.make_weights()
+
+    fn process(mut self, ref input: List[Float64], mut output: List[Float64]) -> None:
+        """Compute the first `output_size` DCT-II coefficients for `input`.
+
+        Nothing is returned from this function, but the computed DCT coefficients are stored in the `output` List passed as an argument.
+
+        Args:
+            input: Input vector of length `input_size`.
+            output: Output vector of length `output_size`.
+        """
+        for k in range(Self.output_size):
+            var acc: Float64 = 0.0
+            for n in range(Self.input_size):
+                acc += self.weights[k][n] * input[n]
+            output[k] = acc
+
+    @doc_private
+    fn make_weights(mut self):
+        """Precompute the DCT-II weight matrix."""
+        var n_inv = 1.0 / Float64(Self.input_size)
+        var scale0 = sqrt(n_inv)
+        var scale = sqrt(2.0 * n_inv)
+        var n_f = Float64(Self.input_size)
+
+        for k in range(Self.output_size):
+            var alpha = scale0 if k == 0 else scale
+            var k_f = Float64(k)
+            for n in range(Self.input_size):
+                var n_f_idx = Float64(n) + 0.5
+                var angle = (pi / n_f) * n_f_idx * k_f
+                self.weights[k][n] = alpha * cos(angle)

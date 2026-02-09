@@ -6,17 +6,17 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 
-os.system("sclang MelBands_Validation.scd")
+os.system("sclang ./validation/MelBands_Validation.scd")
 
-os.system("mojo run validation/MelBands_Validation.mojo")
+os.system("mojo run ./validation/MelBands_Validation.mojo")
 
-with open("./outputs/mel_bands_flucoma.csv", "r") as f:
+with open("./validation/outputs/mel_bands_flucoma.csv", "r") as f:
     reader = csv.reader(f)
     flucoma_results = []
     for row in reader:
         flucoma_results.append([float(value) for value in row])
         
-with open("./outputs/mel_bands_mojo.csv", "r") as f:
+with open("./validation/outputs/mel_bands_mojo.csv", "r") as f:
     reader = csv.reader(f)
     mojo_results = []
     for row in reader:
@@ -26,8 +26,8 @@ mojo_results = mojo_results[2:] # remove first two frames to "align" with others
 mojo_results = np.array(mojo_results).T  # transpose to match librosa output shape
 flucoma_results = np.array(flucoma_results).T  # transpose to match librosa output shape
     
-y, sr = librosa.load("../resources/Shiverer.wav", sr=None)
-librosa_results = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=10, n_fft=1024, hop_length=512, fmin=20.0, fmax=20000.0,center=False,power=1.0)
+y, sr = librosa.load("./resources/Shiverer.wav", sr=None)
+librosa_results = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=10, n_fft=1024, hop_length=512, fmin=20.0, fmax=20000.0, center=False)
 
 # Align arrays to the same size
 min_frames = min(librosa_results.shape[1], flucoma_results.shape[1], mojo_results.shape[1])

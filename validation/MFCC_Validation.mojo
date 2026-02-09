@@ -1,0 +1,47 @@
+from mmm_audio import *
+
+comptime fftsize: Int = 1024
+comptime hopsize: Int = 512
+comptime num_coeffs: Int = 13
+comptime num_bands: Int = 40
+comptime min_freq: Float64 = 20.0
+comptime max_freq: Float64 = 20000.0
+
+struct MFCCTestSuite(FFTProcessable):
+    var mfcc: MFCC[num_coeffs=num_coeffs,num_bands=num_bands,min_freq=min_freq,max_freq=max_freq,fft_size=fftsize]
+    var data: List[List[Float64]]
+
+    fn __init__(out self, w: LegacyUnsafePointer[MMMWorld]):
+        self.mfcc = MFCC[num_coeffs=num_coeffs,num_bands=num_bands,min_freq=min_freq,max_freq=max_freq,fft_size=fftsize](w)
+        self.data = List[List[Float64]]()
+
+    fn next_frame(mut self, mut mags: List[Float64], mut phases: List[Float64]):
+        self.mfcc.next_frame(mags, phases)
+        self.data.append(self.mfcc.coeffs.copy())
+
+def main():
+    world = MMMWorld(sample_rate=44100)
+    w = LegacyUnsafePointer(to=world)
+    mfcc_ts = MFCCTestSuite(w)
+    fftprocess = FFTProcess[MFCCTestSuite,fftsize,hopsize,WindowType.hann](w, mfcc_ts^)
+    buf = Buffer.load("resources/Shiverer.wav")
+    for i in range(buf.num_frames):
+        _ = fftprocess.next(buf.data[0][i])
+
+    print("Number of frames processed: ", len(fftprocess.buffered_process.process.process.data))
+
+    with open("validation/outputs/mfcc_mojo_results.csv", "w") as f:
+        f.write("windowsize," + String(fftsize) + "\n")
+        f.write("hopsize," + String(hopsize) + "\n")
+        f.write("num_coeffs," + String(num_coeffs) + "\n")
+        f.write("num_bands," + String(num_bands) + "\n")
+        f.write("min_freq," + String(min_freq) + "\n")
+        f.write("max_freq," + String(max_freq) + "\n")
+        f.write("Coefficients\n")
+        for i, frame in enumerate(fftprocess.buffered_process.process.process.data):
+            if i > 0:
+                f.write("\n")
+            for j, coeff in enumerate(frame):
+                if j > 0:
+                    f.write(",")
+                f.write(String(coeff))
