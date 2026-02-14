@@ -5,7 +5,7 @@ from mmm_audio import *
 # a graph can have as many synths as you want
 struct TestPM(Movable, Copyable):
     var world: World
-    var mod: Osc
+    var mod: Osc[]
     var carrier: Osc[1, Interp.lagrange4]
     var c2: Osc[1, Interp.sinc]
     var lag: Lag[1]

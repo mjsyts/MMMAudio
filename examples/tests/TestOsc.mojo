@@ -5,7 +5,7 @@ from mmm_audio import *
 # a graph can have as many synths as you want
 struct TestOsc[N: Int = 1, num: Int = 8000](Movable, Copyable):
     var world: World
-    var osc: List[Osc]
+    var osc: List[Osc[]]
     var freqs: List[Float64]
 
     fn __init__(out self, world: World):

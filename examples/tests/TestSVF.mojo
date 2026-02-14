@@ -3,8 +3,8 @@ from mmm_audio import *
 
 struct TestSVF(Movable, Copyable):
     var world: World
-    var osc: LFSaw
-    var filts: List[SVF]
+    var osc: LFSaw[]
+    var filts: List[SVF[]]
     var messenger: Messenger
     var freq: Float64
     var cutoff: Float64
@@ -14,7 +14,7 @@ struct TestSVF(Movable, Copyable):
         self.world = world
         self.osc = LFSaw(self.world)
         self.messenger = Messenger(self.world)
-        self.filts = List[SVF](capacity=2)
+        self.filts = List[SVF[]](capacity=2)
         self.freq = 440
         self.cutoff = 1000.0
         self.res = 1.0

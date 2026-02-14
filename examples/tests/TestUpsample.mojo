@@ -4,7 +4,7 @@ from mmm_audio import *
 comptime times_oversample = 16
 struct TestUpsample(Movable, Copyable):
     var world: World
-    var osc: Osc
+    var osc: Osc[]
     var upsampler: Upsampler[1, times_oversample]
     var messenger: Messenger
 
