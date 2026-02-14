@@ -65,17 +65,17 @@ print("N Mojo Frames: ", mojo_aligned.shape[1])
 
 # Print statistics
 print("\n=== Mel Bands Comparison Statistics ===\n")
-print(f"MMMAudio vs Librosa: Mean Difference = {mojo_vs_librosa_mean:.5f}, Std Dev = {mojo_vs_librosa_std:.5f}")
-print(f"MMMAudio vs FluCoMa: Mean Difference = {mojo_vs_flucoma_mean:.5f}, Std Dev = {mojo_vs_flucoma_std:.5f}")
-print(f"Librosa vs FluCoMa: Mean Difference = {librosa_vs_flucoma_mean:.5f}, Std Dev = {librosa_vs_flucoma_std:.5f}")
+print(f"MMMAudio vs Librosa: Mean Difference = {mojo_vs_librosa_mean:.4f}, Std Dev = {mojo_vs_librosa_std:.4f}")
+print(f"MMMAudio vs FluCoMa: Mean Difference = {mojo_vs_flucoma_mean:.4f}, Std Dev = {mojo_vs_flucoma_std:.4f}")
+print(f"Librosa vs FluCoMa: Mean Difference = {librosa_vs_flucoma_mean:.4f}, Std Dev = {librosa_vs_flucoma_std:.4f}")
 
 # Print as markdown table
 print("\n=== Copy-Pasteable Markdown Table ===\n")
 print("| Comparison          | Mean Difference | Std Dev of Differences |")
 print("| ------------------- | --------------- | ---------------------- |")
-print(f"| MMMAudio vs Librosa | {mojo_vs_librosa_mean:.5f}      | {mojo_vs_librosa_std:.5f}            |")
-print(f"| MMMAudio vs FluCoMa | {mojo_vs_flucoma_mean:.5f}      | {mojo_vs_flucoma_std:.5f}            |")
-print(f"| Librosa vs FluCoMa  | {librosa_vs_flucoma_mean:.5f}      | {librosa_vs_flucoma_std:.5f}            |")
+print(f"| MMMAudio vs Librosa | {mojo_vs_librosa_mean:.4f}      | {mojo_vs_librosa_std:.4f}            |")
+print(f"| MMMAudio vs FluCoMa | {mojo_vs_flucoma_mean:.4f}      | {mojo_vs_flucoma_std:.4f}            |")
+print(f"| Librosa vs FluCoMa  | {librosa_vs_flucoma_mean:.4f}      | {librosa_vs_flucoma_std:.4f}            |")
 print()
 
 fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True)

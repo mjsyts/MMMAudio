@@ -1,22 +1,22 @@
 {
-  "created_at": "2026-02-14T22:11:50.544986+00:00",
+  "created_at": "2026-02-14T22:30:31.569551+00:00",
   "scripts": {
     "MFCC_Validation.py": {
       "stats": [
         {
           "label": "MMMAudio vs Librosa",
-          "line": "MMMAudio vs Librosa: Mean Difference = 3.801564, Std Dev = 5.258730",
+          "line": "MMMAudio vs Librosa: Mean Difference = 3.8016, Std Dev = 5.2587",
           "values": [
-            3.801564,
-            5.25873
+            3.8016,
+            5.2587
           ]
         },
         {
           "label": "MMMAudio vs FluCoMa",
-          "line": "MMMAudio vs FluCoMa: Mean Difference = 23.017341, Std Dev = 55.332058",
+          "line": "MMMAudio vs FluCoMa: Mean Difference = 23.0173, Std Dev = 55.3321",
           "values": [
-            23.017341,
-            55.332058
+            23.0173,
+            55.3321
           ]
         }
       ]
@@ -25,18 +25,18 @@
       "stats": [
         {
           "label": "MMMAudio vs Librosa",
-          "line": "MMMAudio vs Librosa: Mean Difference = 0.042374, Std Dev = 0.201051",
+          "line": "MMMAudio vs Librosa: Mean Difference = 0.0424, Std Dev = 0.2011",
           "values": [
-            0.042374,
-            0.201051
+            0.0424,
+            0.2011
           ]
         },
         {
           "label": "MMMAudio vs FluCoMa",
-          "line": "MMMAudio vs FluCoMa: Mean Difference = 0.179130, Std Dev = 0.836802",
+          "line": "MMMAudio vs FluCoMa: Mean Difference = 0.1791, Std Dev = 0.8368",
           "values": [
-            0.17913,
-            0.836802
+            0.1791,
+            0.8368
           ]
         }
       ]
