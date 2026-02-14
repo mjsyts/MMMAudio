@@ -12,12 +12,12 @@ from .Filters import *
 from .MLP_Module import *
 from .Noise import *
 from .Oscillators import *
-from .Oversampling import *
+from .Oversampling_Module import *
 from .Pan import *
 from .Player import *
 from .Recorder_Module import *
 from .Reverbs import *
-from .SincInterpolator import *
+from .SincInterpolator_Module import *
 
 from .Messenger_Module import *
 from .Print_Module import *
