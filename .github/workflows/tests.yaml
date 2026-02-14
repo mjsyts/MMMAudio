@@ -31,11 +31,6 @@ jobs:
         run: |
           python testing/test_build_mojo_files.py
 
-      - name: Make Directories for Results
-        run: |
-          mkdir -p testing/librosa_results
-          mkdir -p testing/mojo_results
-
       - name: Create Librosa Results for Testing Against
         run: |
           python testing/librosa_results_for_testing_against.py

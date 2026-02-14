@@ -13,6 +13,8 @@ args = parser.parse_args()
 show_plots = args.show_plots
 
 os.makedirs("testing/validation_results", exist_ok=True)
+os.makedirs("testing/mojo_results", exist_ok=True)
+os.makedirs("testing/flucoma_sc_results", exist_ok=True)
 
 flucoma_csv_path = "./testing/flucoma_sc_results/mel_bands_flucoma.csv"
 if not os.path.exists(flucoma_csv_path):
