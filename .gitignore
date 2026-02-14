@@ -221,11 +221,13 @@ __marimo__/
 doc_generation/docs_md
 site
 .vscode
-testing/validation
+testing/librosa_results
 .venv-257
-examples/tests/results_for_testing_against
 venv0257
 pixi.lock
 pixi.toml
 mine.worktrees
 *.o
+testing/outputs
+testing/mojo_results
+testing/validation_results
