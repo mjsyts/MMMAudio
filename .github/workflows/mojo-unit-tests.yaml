@@ -29,13 +29,13 @@ jobs:
 
       - name: Make Directory for Results
         run: |
-          mkdir -p unit_testing/results_for_testing_against
+          mkdir -p testing/results_for_testing_against
 
       - name: Create Results for Testing Against
         run: |
-          python unit_testing/results_for_testing_against.py
+          python testing/results_for_testing_against.py
 
       - name: Run UnitTests.mojo
         id: run-tests
         run: |
-          mojo unit_testing/UnitTests.mojo
+          mojo testing/UnitTests.mojo
