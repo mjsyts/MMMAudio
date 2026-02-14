@@ -1,9 +1,7 @@
-from .functions import clip, linlin
-from .MMMWorld_Module import *
 from math import sqrt, floor, cos, pi, sin
 from bit import next_power_of_two
 from sys import simd_width_of
-from .functions import *
+from mmm_audio import *
 
 @always_inline
 fn pan2(samples: Float64, pan: Float64) -> SIMD[DType.float64, 2]:

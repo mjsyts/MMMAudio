@@ -1,11 +1,9 @@
-from .MMMWorld_Module import *
+from mmm_audio import *
 from math import exp, sqrt, tan, pi, tanh, ceil, floor
 from bit import next_power_of_two
-from .functions import *
 
 from sys import simd_width_of
 from algorithm import vectorize
-from .Oversampling import Oversampling, Upsampler
 
 struct Lag[num_chans: Int = 1](Representable, Movable, Copyable):
     """A lag processor that smooths input values over time based on a specified lag time in seconds.

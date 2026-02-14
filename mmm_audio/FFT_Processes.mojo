@@ -1,3 +1,5 @@
+from mmm_audio import *
+
 struct HilbertWindow[window_size: Int](ComplexFFTProcessable):
     var m: Messenger
     comptime pi_over2 = 1.5707963267948966

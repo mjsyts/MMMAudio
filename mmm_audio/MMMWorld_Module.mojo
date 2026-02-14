@@ -1,11 +1,7 @@
 from python import PythonObject
-from .Oscillators import OscBuffers
-from .Windows_Module import *
-from mmm_audio.Print_Module import Print
 import time
 from collections import Set
-from .SincInterpolator import SincInterpolator
-from .Messenger_Module import MessengerManager
+from mmm_audio import *
 
 comptime MFloat[N: Int = 1] = SIMD[DType.float64, N]
 comptime MInt[N: Int = 1] = SIMD[DType.int64, N]

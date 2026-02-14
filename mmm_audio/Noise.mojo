@@ -1,5 +1,5 @@
 from random import random_float64
-from .functions import *
+from mmm_audio import *
 
 struct WhiteNoise[num_chans: Int = 1](Copyable, Movable):
     """Generate white noise samples.

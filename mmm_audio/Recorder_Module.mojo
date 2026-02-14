@@ -1,9 +1,5 @@
 from memory import LegacyUnsafePointer
-from .Buffer_Module import *
-from .MMMWorld_Module import *
-from .Oscillators import Impulse
-from .functions import *
-from .Envelopes import Env
+from mmm_audio import *
 
 struct Recorder[num_chans: Int = 1](Representable, Movable, Copyable):
     """

@@ -1,5 +1,4 @@
-from .Filters import lpf_LR4
-from .MMMWorld_Module import *
+from mmm_audio import *
 
 struct Oversampling[num_chans: Int = 1, times_oversampling: Int = 0](Representable, Movable, Copyable):
     """A struct that collects ` times_oversampling` samples and then downsamples them using a low-pass filter. Add a sample for each oversampling iteration with `add_sample()`, then get the downsampled output with `get_sample()`.

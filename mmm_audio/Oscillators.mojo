@@ -1,11 +1,6 @@
 from math import sin, floor
 from random import random_float64
-from .functions import *
-from .MMMWorld_Module import MMMWorld, Interp
-from .Buffer_Module import *
-from .Filters import *
-from .Oversampling import Oversampling
-from .RisingBoolDetector_Module import RisingBoolDetector
+from mmm_audio import *
 
 struct Phasor[num_chans: Int = 1, os_index: Int = 0](Representable, Movable, Copyable):
     """Phasor Oscillator.

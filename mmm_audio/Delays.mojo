@@ -1,9 +1,6 @@
-from .MMMWorld_Module import *
-from .functions import *
+from mmm_audio import *
 from math import tanh
-from .Filters import *
 from math import log
-from .Recorder_Module import Recorder
 from bit import next_power_of_two
 
 struct Delay[num_chans: Int = 1, interp: Int = Interp.linear](Representable, Movable, Copyable):

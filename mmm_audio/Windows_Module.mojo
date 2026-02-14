@@ -1,5 +1,4 @@
-from .MMMWorld_Module import MMMWorld, Interp, WindowType
-from .Buffer_Module import ListInterpolator
+from mmm_audio import *
 from math import exp, sin, sqrt, cos, pi
 
 struct Windows(Movable, Copyable):

@@ -1,16 +1,8 @@
 from python import PythonObject
 from python import Python
 from memory import LegacyUnsafePointer
-from .Buffer_Module import *
-from .MMMWorld_Module import *
-from .Oscillators import Dust, Phasor
-from .functions import *
-from .Pan import pan2, pan_az
-from .Filters import DCTrap
-from .RisingBoolDetector_Module import RisingBoolDetector
+from mmm_audio import *
 from time import time
-from utils import Variant
-from .Recorder_Module import Recorder
 
 struct Play(Representable, Movable, Copyable):
     """The principle buffer playback object for MMMAudio.

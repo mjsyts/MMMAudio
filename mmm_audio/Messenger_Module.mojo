@@ -1,4 +1,4 @@
-from .MMMWorld_Module import *
+from mmm_audio import *
 from collections import Dict, Set
 
 struct Messenger(Copyable, Movable):

@@ -228,3 +228,4 @@ venv0257
 pixi.lock
 pixi.toml
 mine.worktrees
+*.o

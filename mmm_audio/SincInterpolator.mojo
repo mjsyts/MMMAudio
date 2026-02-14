@@ -1,9 +1,6 @@
-from .Windows_Module import kaiser_window
-from .functions import quadratic_interp
-from .Buffer_Module import *
+from mmm_audio import *
 from sys import simd_width_of
 from math import floor, log2, sin
-from .functions import wrap, clip
 
 struct SincInterpolator[ripples: Int64 = 4, power: Int64 = 14](Movable, Copyable):
     """Sinc Interpolation of `List[Float64]`s.

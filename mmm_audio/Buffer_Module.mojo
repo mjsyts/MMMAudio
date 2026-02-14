@@ -1,10 +1,8 @@
 from python import PythonObject
 from python import Python
-from .functions import *
-from .MMMWorld_Module import MMMWorld, Interp
+from mmm_audio import *
 from math import sin, log2, ceil, floor
 from sys import simd_width_of
-from .functions import linear_interp, quadratic_interp
 
 struct Buffer(Movable, Copyable):
     """A multi-channel audio buffer for storing audio data.
