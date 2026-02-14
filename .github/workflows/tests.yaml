@@ -42,4 +42,4 @@ jobs:
         
       - name: Validate Against Snapshots
         run: |
-          python testing/validate_against_snapshots.py
+          python testing/validate_against_snapshot.py
