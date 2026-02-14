@@ -225,3 +225,6 @@ validation/outputs
 .venv-257
 examples/tests/results_for_testing_against
 venv0257
+pixi.lock
+pixi.toml
+mine.worktrees
