@@ -12,3 +12,7 @@ mmm_audio2.start_audio()
 
 mmm_audio3 = MMMAudio(2048, graph_name="PaulStretch", package_name="examples")
 mmm_audio3.start_audio()
+
+mmm_audio.send_int("num_pairs", 30)
+
+mmm_audio3.send_float("dur_mult", 200)
