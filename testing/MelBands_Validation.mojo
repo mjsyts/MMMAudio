@@ -17,8 +17,8 @@ struct MelBandsTestSuite(FFTProcessable):
         self.data.append(self.melbands.bands.copy())
 
 def main():
-    world = MMMWorld(sample_rate=44100)
-    w = UnsafePointer(to=world)
+    w = alloc[MMMWorld](1)
+    w.init_pointee_move(MMMWorld(44100.0))
     mbts = MelBandsTestSuite(w)
     fftprocess = FFTProcess[MelBandsTestSuite,fftsize,hopsize,WindowType.hann](w,mbts^)
     buf = Buffer.load("resources/Shiverer.wav")

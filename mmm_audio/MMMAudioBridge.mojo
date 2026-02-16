@@ -12,7 +12,6 @@ from examples.FeedbackDelays import FeedbackDelays
 
 struct MMMAudioBridge(Representable, Movable):
     var world: World
-
     var graph: FeedbackDelays  # The audio graph instance
 
     @staticmethod
@@ -33,7 +32,7 @@ struct MMMAudioBridge(Representable, Movable):
 
     fn __init__(out self, sample_rate: Float64 = 44100.0, block_size: Int64 = 512, num_in_chans: Int64 = 12, num_out_chans: Int64 = 12):
         """Initialize the audio engine with sample rate, block size, and number of channels."""
-        
+
         self.world = alloc[MMMWorld](1) 
         self.world.init_pointee_move(MMMWorld(sample_rate, block_size, num_in_chans, num_out_chans))
 

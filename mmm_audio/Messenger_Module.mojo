@@ -31,6 +31,7 @@ struct Messenger(Copyable, Movable):
         self.namespace = namespace
         self.key_dict = Dict[String, String]()
 
+
     @doc_private
     fn get_name_with_namespace(mut self, name: String) raises -> LegacyUnsafePointer[mut=False,String]:
         if not self.key_dict.__contains__(name):
