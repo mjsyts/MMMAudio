@@ -93,6 +93,7 @@ nav:
 
 markdown_extensions:
   - admonition
+  - pymdownx.tilde
   - pymdownx.details
   - pymdownx.superfences
   - pymdownx.highlight:
