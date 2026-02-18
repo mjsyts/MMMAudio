@@ -24,15 +24,10 @@ depending on your system set up, you may need to explicitly specify the Python v
 python -m venv venv 
 source venv/bin/activate
 
-pip install numpy scipy librosa pyautogui torch mido python-osc python-rtmidi matplotlib PySide6
+pip install -r requirements.txt
 ```
 
-install modular's max/mojo library
-the main branch is tied to Mojo 0.26.1.
-
-```shell
-pip install mojo==0.26.1
-```
+This will install all required Python packages including Mojo 0.26.1.
 
 ### 2a. Further Setup of the Environment on MacOS (Apple Silicon Only - Mojo Does not and will not work on Intel Macs)
 
@@ -45,11 +40,7 @@ brew install hidapi
 
 MMMAudio uses `pyAudio` (`portaudio`) for audio input/output and `hid` for HID control.
 
-Then install `pyaduio` and `hid` in your virtual environment with your `venv` activated:
-
-```shell
-pip install hid pyaudio
-```
+Note: `pyaudio` and `hid` are included in requirements.txt, but they require the system libraries installed above to work properly.
 
 if you have trouble installing/running `pyaudio`, try this:
 1. [do this](https://stackoverflow.com/questions/68251169/unable-to-install-pyaudio-on-m1-mac-portaudio-already-installed/68296168#68296168)

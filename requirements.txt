@@ -1,0 +1,13 @@
+numpy
+scipy
+librosa
+pyautogui
+torch
+mido
+python-osc
+python-rtmidi
+matplotlib
+PySide6
+mojo==0.26.1
+pyaudio
+hid
