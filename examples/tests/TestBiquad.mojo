@@ -27,6 +27,6 @@ struct TestBiquad(Movable, Copyable):
         
         # Split to stereo: left=LPF, right=HPF
         outs = SIMD[DType.float64, 2](0.0, 0.0)
-        outs[0] = self.filts[0].lpf(sample, self.cutoff, self.q)
-        outs[1] = self.filts[1].hpf(sample, self.cutoff, self.q)
+        outs[0] = self.filts[0].lpf(SIMD[DType.float64, 1](sample[0]), SIMD[DType.float64, 1](self.cutoff), SIMD[DType.float64, 1](self.q))[0]
+        outs[1] = self.filts[1].hpf(SIMD[DType.float64, 1](sample[0]), SIMD[DType.float64, 1](self.cutoff), SIMD[DType.float64, 1](self.q))[0]
         return outs * 0.2
