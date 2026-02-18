@@ -8,7 +8,7 @@ struct SincInterpolator[ripples: Int64 = 4, power: Int64 = 14](Movable, Copyable
     Struct for high-quality audio resampling using sinc interpolation. This struct precomputes a sinc table and provides methods for performing sinc interpolation
     on audio data with adjustable ripples and table size. It is used in Osc for resampling oscillator signals.
 
-    As a user, you won't need to interact with this struct directly. Instead use the [ListInterpolator](Buffer.md#struct-listinterpolator) struct.
+    As a user, you won't need to interact with this struct directly. Instead use the [SpanInterpolator](Buffer.md#struct-SpanInterpolator) struct.
 
     Parameters:
         ripples: Number of ripples in the sinc function, affecting interpolation quality.
@@ -58,14 +58,14 @@ struct SincInterpolator[ripples: Int64 = 4, power: Int64 = 14](Movable, Copyable
 
     @doc_private
     @always_inline  
-    fn spaced_sinc[bWrap: Bool = False, mask: Int = 0](self, data: List[Float64], index: Int64, frac: Float64, spacing: Int64) -> Float64:
+    fn spaced_sinc[num_chans: Int = 1, bWrap: Bool = False, mask: Int = 0](self, data: Span[MFloat[num_chans]], index: Int64, frac: Float64, spacing: Int64) -> MFloat[num_chans]:
         """Read using spaced sinc interpolation. This is a helper function for read_sinc."""
         sinc_mult = self.max_sinc_offset / spacing
         loop_count = Self.ripples * 2
         
         # Try to process in SIMD chunks if the loop is large enough
         comptime simd_width = simd_width_of[DType.float64]()
-        var out: Float64 = 0.0
+        var out: MFloat[num_chans] = 0.0
         data_len: Int64 = len(data)
         
         # Process SIMD chunks
@@ -111,7 +111,7 @@ struct SincInterpolator[ripples: Int64 = 4, power: Int64 = 14](Movable, Copyable
         return out
 
     @always_inline
-    fn sinc_interp[bWrap: Bool = True, mask: Int = 0](self, data: List[Float64], current_index: Float64, prev_index: Float64) -> Float64:
+    fn sinc_interp[num_chans: Int = 1, bWrap: Bool = True, mask: Int = 0](self, data: Span[MFloat[num_chans]], current_index: Float64, prev_index: Float64) -> MFloat[num_chans]:
         """Perform sinc interpolation on the given data at the specified current index.
         
         Parameters:
@@ -153,11 +153,19 @@ struct SincInterpolator[ripples: Int64 = 4, power: Int64 = 14](Movable, Copyable
         index_floor = Int64(f_index)
         frac = f_index - Float64(index_floor)
         
-        sinc1 = self.spaced_sinc[bWrap,mask](data, index_floor, frac, spacing1)
-        
-        sel0: SIMD[DType.bool, 1] = (sinc_crossfade == 0.0)
-        sel1: SIMD[DType.bool, 1] = (layer < 12)
-        sinc2 = sel0.select(0.0, sel1.select(self.spaced_sinc[bWrap,mask](data, index_floor, frac, spacing2),0.0))
+        sinc1 = self.spaced_sinc[num_chans, bWrap, mask](data, index_floor, frac, spacing1)
+
+        # sinc2 = self.spaced_sinc[num_chans,bWrap,mask](data, index_floor, frac, spacing2)
+        # sinc2 = sel0.select(MFloat[num_chans](0.0), sel1.select(
+        #     MFloat[num_chans](0.0),
+        #     MFloat[num_chans](0.0)
+        # ))
+        if sinc_crossfade == 0.0:
+            sinc2 = MFloat[num_chans](0.0)
+        elif layer < 12:
+            sinc2 = self.spaced_sinc[num_chans,bWrap,mask](data, index_floor, frac, spacing2)
+        else:
+            sinc2 = MFloat[num_chans](0.0)
         
         return sinc1 + sinc_crossfade * (sinc2 - sinc1)
 
@@ -189,8 +197,76 @@ struct SincInterpolator[ripples: Int64 = 4, power: Int64 = 14](Movable, Copyable
         # The beta parameter controls the trade-off between main lobe width and side lobe height
         beta = 5.0  # Typical values range from 5 to 8 for audio processing
 
-        window = kaiser_window(table_size, beta)
+        window = SincInterpolator.build_kaiser_window(table_size, beta)
         for i in range(len(table)):
             table[i] *= window[i]  # Apply the window to the sinc values
         
         return table.copy()
+
+    @doc_private
+    @staticmethod
+    fn build_kaiser_window(size: Int64, beta: Float64) -> List[Float64]:
+        """
+        Create a Kaiser window of length n with shape parameter beta.
+
+        - beta = 0: rectangular window.
+        - beta = 5: similar to Hamming window.
+        - beta = 6: similar to Hanning window.
+        - beta = 8.6: similar to Blackman window.
+        
+        Args:
+            size: Length of the window.
+            beta: Shape parameter that controls the trade-off between main lobe width and side lobe level. See description for details.
+        
+        Returns:
+            List[Float64] containing the Kaiser window coefficients.
+        """
+        var window = List[Float64]()
+
+        if size == 1:
+            window.append(1.0)
+            return window.copy()
+        
+        # Calculate the normalization factor
+        var i0_beta = SincInterpolator.build_bessel_i0(beta)
+        
+        # Generate window coefficients
+        for i in range(size):
+            # Calculate the argument for the Bessel function
+            var alpha = (Float64(size) - 1.0) / 2.0
+            var arg = beta * sqrt(1.0 - ((Float64(i) - alpha) / alpha) ** 2)
+
+            # Calculate Kaiser window coefficient
+            var coeff = SincInterpolator.build_bessel_i0(arg) / i0_beta
+            window.append(coeff)
+
+        return window.copy()
+
+    @doc_private
+    @staticmethod
+    fn build_bessel_i0(x: Float64) -> Float64:
+        """
+        Calculate the modified Bessel function of the first kind, order 0 (I₀). Uses polynomial approximation for accurate results.
+        
+        Args:
+            x: Input value.
+        
+        Returns:
+            I₀(x).
+        """
+        var abs_x = abs(x)
+        
+        if abs_x < 3.75:
+            # For |x| < 3.75, use polynomial approximation
+            var t = (x / 3.75) ** 2
+            return 1.0 + 3.5156229 * t + 3.0899424 * (t ** 2) + 1.2067492 * (t ** 3) + \
+                0.2659732 * (t ** 4) + 0.0360768 * (t ** 5) + 0.0045813 * (t ** 6)
+        else:
+            # For |x| >= 3.75, use asymptotic expansion
+            var t = 3.75 / abs_x
+            var result = (exp(abs_x) / (abs_x ** 0.5)) * \
+                        (0.39894228 + 0.01328592 * t + 0.00225319 * (t ** 2) - \
+                        0.00157565 * (t ** 3) + 0.00916281 * (t ** 4) - \
+                        0.02057706 * (t ** 5) + 0.02635537 * (t ** 6) - \
+                        0.01647633 * (t ** 7) + 0.00392377 * (t ** 8))
+            return result

@@ -89,7 +89,7 @@ struct Delay[num_chans: Int = 1, interp: Int = Interp.linear](Representable, Mov
 
       @parameter
       for chan in range(self.num_chans):
-        out[chan] = ListInterpolator.read_none[bWrap=True](self.delay_line.buf.data[chan], Float64(idx[chan]))
+        out[chan] = SpanInterpolator.read_none[bWrap=True](self.delay_line.buf.data[chan], Float64(idx[chan]))
 
       return out
 
@@ -111,19 +111,19 @@ struct Delay[num_chans: Int = 1, interp: Int = Interp.linear](Representable, Mov
       for chan in range(self.num_chans):
         @parameter
         if self.interp == Interp.none:
-          out[chan] = ListInterpolator.read_none[bWrap=True](self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]))
+          out[chan] = SpanInterpolator.read_none[bWrap=True](self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]))
         elif self.interp == Interp.linear:
-          out[chan] = ListInterpolator.read_linear[bWrap=True](self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]))
+          out[chan] = SpanInterpolator.read_linear[bWrap=True](self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]))
         elif self.interp == Interp.quad:
-          out[chan] = ListInterpolator.read_quad[bWrap=True](self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]))
+          out[chan] = SpanInterpolator.read_quad[bWrap=True](self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]))
         elif self.interp == Interp.cubic:
           delay_time = max(delay_time, self.two_sample_duration)
-          out[chan] = ListInterpolator.read_cubic[bWrap=True](self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]))
+          out[chan] = SpanInterpolator.read_cubic[bWrap=True](self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]))
         elif self.interp == Interp.lagrange4:
-          out[chan] = ListInterpolator.read_lagrange4[bWrap=True](self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]))
+          out[chan] = SpanInterpolator.read_lagrange4[bWrap=True](self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]))
         elif self.interp == Interp.sinc:
           # f_idx = self.get_f_idx(delay_time[chan])
-          # out[chan] = ListInterpolator.read_sinc[bWrap=True](self.world, self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]), self.prev_f_idx[chan])
+          # out[chan] = SpanInterpolator.read_sinc[bWrap=True](self.world, self.delay_line.buf.data[chan], self.get_f_idx(delay_time[chan]), self.prev_f_idx[chan])
           # self.prev_f_idx[chan] = f_idx
           print("Sinc interpolation not recommended for Delays.")
           
@@ -181,7 +181,7 @@ struct Delay[num_chans: Int = 1, interp: Int = Interp.linear](Representable, Mov
         """
 
         delay_samps = max(delay_time, self.sample_duration) * self.world[].sample_rate
-        # Because the ListInterpolator functions always "read" forward,
+        # Because the SpanInterpolator functions always "read" forward,
         # we're writing into the delay line buffer backwards, so therefore,
         # here to go backwards in time we add the delay samples to the write head.
         f_idx = (Float64(self.delay_line.write_head) + delay_samps) % Float64(self.delay_line.buf.num_frames)

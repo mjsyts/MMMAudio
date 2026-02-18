@@ -118,7 +118,7 @@ struct Play(Representable, Movable, Copyable):
         out = SIMD[DType.float64, num_chans](0.0)
         @parameter
         for out_chan in range(num_chans):
-            out[out_chan] = ListInterpolator.read[interp=interp,bWrap=bWrap](
+            out[out_chan] = SpanInterpolator.read[interp=interp,bWrap=bWrap](
                 world=self.world,
                 data=buf.data[(out_chan + start_chan) % len(buf.data)], # wrap around channels
                 # f_idx=((self.impulse.phase + self.phase_offset) % 1.0) * buf.num_frames_f64,

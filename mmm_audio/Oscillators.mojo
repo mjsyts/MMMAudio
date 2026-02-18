@@ -174,8 +174,8 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
         os_index: [Oversampling](Oversampling.md) index (0 = no oversampling, 1 = 2x, 2 = 4x, etc.; default is 0).
     """
 
-    var phasor: Phasor[Self.num_chans, Self.os_index]  # Instance of the Phasor
-    var world: World  # Pointer to the MMMWorld instance
+    var phasor: Phasor[Self.num_chans, Self.os_index]
+    var world: World 
     var oversampling: Oversampling[Self.num_chans, 2**Self.os_index]
     var last_phase: SIMD[DType.float64, Self.num_chans]
 
@@ -222,10 +222,9 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
             
             # last_phase = self.phasor.phase  # Store the last phase for sinc interpolation
             phase = self.phasor.next(freq, phase_offset, trig_mask)
-
             @parameter
             for chan in range(self.num_chans):
-                out[chan] = ListInterpolator.read[
+                out[chan] = SpanInterpolator.read[
                         interp=self.interp,
                         bWrap=True,
                         mask=OscBuffersMask
@@ -247,7 +246,7 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
                 sample = SIMD[DType.float64, self.num_chans](0.0)
                 @parameter
                 for chan in range(self.num_chans):
-                    sample[chan] = ListInterpolator.read[
+                    sample[chan] = SpanInterpolator.read[
                         interp=self.interp,
                         bWrap=True,
                         mask=OscBuffersMask
@@ -317,7 +316,7 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
             var phase = self.phasor.next(freq, phase_offset, trig_mask)
             @parameter
             for chan in range(self.num_chans):
-                sample0[chan] = ListInterpolator.read[
+                sample0[chan] = SpanInterpolator.read[
                         interp=self.interp,
                         bWrap=True,
                         mask=OscBuffersMask
@@ -327,7 +326,7 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
                         f_idx=phase[chan] * OscBuffersSize,
                         prev_f_idx=self.last_phase[chan] * OscBuffersSize
                     )
-                sample1[chan] = ListInterpolator.read[
+                sample1[chan] = SpanInterpolator.read[
                         interp=self.interp,
                         bWrap=True,
                         mask=OscBuffersMask
@@ -346,7 +345,7 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
                 var phase = self.phasor.next(freq, phase_offset, trig_mask)
                 @parameter
                 for chan in range(self.num_chans):
-                    sample0[chan] = ListInterpolator.read[
+                    sample0[chan] = SpanInterpolator.read[
                         interp=self.interp,
                         bWrap=True,
                         mask=OscBuffersMask
@@ -356,7 +355,7 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
                         f_idx=phase[chan] * OscBuffersSize,
                         prev_f_idx=self.last_phase[chan] * OscBuffersSize
                     )
-                    sample1[chan] = ListInterpolator.read[
+                    sample1[chan] = SpanInterpolator.read[
                         interp=self.interp,
                         bWrap=True,
                         mask=OscBuffersMask
@@ -410,7 +409,7 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
             var phase = self.phasor.next(freq, phase_offset, trig_mask)
             @parameter
             for out_chan in range(self.num_chans):
-                sample0[out_chan] = ListInterpolator.read[
+                sample0[out_chan] = SpanInterpolator.read[
                         interp=self.interp,
                         bWrap=True,
                         mask=0
@@ -420,7 +419,7 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
                         f_idx=phase[out_chan] * buffer.num_frames_f64,
                         prev_f_idx=self.last_phase[out_chan] * buffer.num_frames_f64
                     )
-                sample1[out_chan] = ListInterpolator.read[
+                sample1[out_chan] = SpanInterpolator.read[
                         interp=self.interp,
                         bWrap=True,
                         mask=0
@@ -440,7 +439,7 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
                 var phase = self.phasor.next(freq, phase_offset, trig_mask)
                 @parameter
                 for out_chan in range(self.num_chans):
-                    sample0[out_chan] = ListInterpolator.read[
+                    sample0[out_chan] = SpanInterpolator.read[
                             interp=self.interp,
                             bWrap=True,
                             mask=0
@@ -450,7 +449,7 @@ struct Osc[num_chans: Int = 1, interp: Int = Interp.linear, os_index: Int = 0](R
                             f_idx=phase[out_chan] * buffer.num_frames_f64,
                             prev_f_idx=self.last_phase[out_chan] * buffer.num_frames_f64
                         )
-                    sample1[out_chan] = ListInterpolator.read[
+                    sample1[out_chan] = SpanInterpolator.read[
                             interp=self.interp,
                             bWrap=True,
                             mask=0
@@ -821,7 +820,7 @@ struct OscBuffers(Movable, Copyable):
     var buffers: InlineArray[List[Float64],7]
 
     fn at_phase[osc_type: Int, interp: Int = Interp.none](self, world: World, phase: Float64, prev_phase: Float64 = 0) -> Float64:
-        return ListInterpolator.read[
+        return SpanInterpolator.read[
             interp=interp,
             bWrap=True,
             mask=OscBuffersMask
