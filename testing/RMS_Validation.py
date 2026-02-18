@@ -17,7 +17,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--show-plots", action="store_true", help="Display plots interactively")
 args = parser.parse_args()
 show_plots = args.show_plots
-from mmm_python import *
 
 os.makedirs("testing/validation_results", exist_ok=True)
 os.makedirs("testing/mojo_results", exist_ok=True)
