@@ -1,14 +1,13 @@
-from .MMMWorld_Module import MMMWorld
-from .Oscillators import Impulse
+from mmm_audio import *
 
 struct Print(Representable, Copyable, Movable):
     """
     A struct for printing values in the MMMWorld environment.
     """
-    var impulse: Impulse
-    var world: UnsafePointer[MMMWorld]
+    var impulse: Impulse[1]
+    var world: World
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         """
         Initialize the Print struct.
 

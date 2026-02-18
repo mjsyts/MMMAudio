@@ -1,5 +1,4 @@
-from random import random_float64
-from math import *
+from mmm_audio import *
 
 struct Changed(Representable, Movable, Copyable):
     """Detect changes in a Bool value."""
@@ -63,6 +62,22 @@ fn ampdb[width: Int, //](amp: SIMD[DType.float64, width]) -> SIMD[DType.float64,
         The corresponding decibel values.
     """
     return 20.0 * log10(amp)
+
+@always_inline
+fn power_to_db(value: Float64, zero_db_ref: Float64 = 1.0, amin: Float64 = 1e-10) -> Float64:
+    """Convert a power value to decibels.
+
+    This mirrors librosa's power_to_db behavior for a single scalar: 10 * log10(max(amin, value) / zero_db_ref).
+
+    Args:
+        value: Power value to convert.
+        zero_db_ref: Reference power for 0 dB.
+        amin: Minimum value to avoid log of zero.
+
+    Returns:
+        The value in decibels.
+    """
+    return 10.0 * log10(max(value, amin) / zero_db_ref)
 
 @always_inline
 fn select[num_chans: Int, //](index: Float64, vals: SIMD[DType.float64, num_chans]) -> Float64:
@@ -205,6 +220,8 @@ fn lincurve[num_chans: Int, //
 
     return result
 
+fn py_to_float64(py_float: PythonObject) raises -> Float64:
+    return Float64(py=py_float)
 
 @always_inline
 fn clip[
@@ -344,7 +361,7 @@ fn lagrange4[
         The interpolated sample.
     """
 
-    alias o = 1.4999999999999999  # to avoid edge case issues
+    comptime o = 1.4999999999999999  # to avoid edge case issues
     var fd = o + frac
 
     # simd optimized!
@@ -355,7 +372,7 @@ fn lagrange4[
     var fdm3: SIMD[dtype, num_chans] = SIMD[dtype, num_chans](0.0)
     var fdm4: SIMD[dtype, num_chans] = SIMD[dtype, num_chans](0.0)
 
-    alias offsets = SIMD[dtype, 4](1.0, 2.0, 3.0, 4.0)
+    comptime offsets = SIMD[dtype, 4](1.0, 2.0, 3.0, 4.0)
 
     @parameter
     for i in range(num_chans):
@@ -563,7 +580,7 @@ fn Li2[num_chans: Int](x: SIMD[DType.float64, num_chans]) -> SIMD[DType.float64,
     Q.append(-4.73366369162599860878254400521224717e-2)
     Q.append(1.23136575793833628711851523557950417e-3)
 
-    alias pi_sq = pi * pi
+    comptime pi_sq = pi * pi
 
     # Initialize output variables
     var y: SIMD[DType.float64, num_chans] = 0.0
@@ -670,3 +687,55 @@ fn sign[num_chans:Int,//](x: SIMD[DType.float64, num_chans]) -> SIMD[DType.float
     nmask:SIMD[DType.bool, num_chans] = x.lt(0.0)
 
     return pmask.select(SIMD[DType.float64, num_chans](1.0), nmask.select(SIMD[DType.float64, num_chans](-1.0), SIMD[DType.float64, num_chans](0.0)))
+
+fn linspace(start: Float64, stop: Float64, num: Int) -> List[Float64]:
+    """Create evenly spaced values between start and stop.
+    
+    Args:
+        start: The starting value.
+        stop: The ending value.
+        num: Number of samples to generate.
+    
+    Returns:
+        A List of Float64 values evenly spaced between start and stop.
+    """
+    var result = List[Float64](length=num, fill=0.0)
+    if num == 1:
+        result[0] = start
+        return result^
+    
+    var step = (stop - start) / Float64(num - 1)
+    for i in range(num):
+        result[i] = start + Float64(i) * step
+    return result^
+
+fn diff(arr: List[Float64]) -> List[Float64]:
+    """Compute differences between consecutive elements.
+    
+    Args:
+        arr: Input list of Float64 values.
+    
+    Returns:
+        A new list with length len(arr) - 1 containing differences.
+    """
+    var result = List[Float64](length=len(arr) - 1, fill=0.0)
+    for i in range(len(arr) - 1):
+        result[i] = arr[i + 1] - arr[i]
+    return result^
+
+fn subtract_outer(a: List[Float64], b: List[Float64]) -> List[List[Float64]]:
+    """Compute outer subtraction: a[i] - b[j] for all i, j.
+    
+    Args:
+        a: First input list (will be rows).
+        b: Second input list (will be columns).
+    
+    Returns:
+        A 2D list where result[i][j] = a[i] - b[j].
+    """
+    var result = List[List[Float64]](length=len(a), fill=List[Float64]())
+    for i in range(len(a)):
+        result[i] = List[Float64](length=len(b), fill=0.0)
+        for j in range(len(b)):
+            result[i][j] = a[i] - b[j]
+    return result^

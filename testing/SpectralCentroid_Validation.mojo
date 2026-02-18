@@ -2,16 +2,16 @@
 
 from mmm_audio import *
 
-alias windowsize: Int = 1024
-alias hopsize: Int = 512
+comptime windowsize: Int = 1024
+comptime hopsize: Int = 512
 
 struct Analyzer(BufferedProcessable):
-    var world: UnsafePointer[MMMWorld]
+    var world: World
     var fft: RealFFT[windowsize]
     var centroids: List[Float64]
     var sample_rate: Float64
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld], sample_rate: Float64):
+    fn __init__(out self, world: World, sample_rate: Float64):
         self.world = world
         self.fft = RealFFT[windowsize]()
         self.centroids = List[Float64]()
@@ -28,7 +28,7 @@ struct Analyzer(BufferedProcessable):
 fn main():
     world = MMMWorld()
     world.sample_rate = 44100.0
-    w = UnsafePointer(to=world)
+    w = LegacyUnsafePointer(to=world)
 
     buffer = Buffer.load("resources/Shiverer.wav")
     playBuf = Play(w)
@@ -38,7 +38,7 @@ fn main():
         sample = playBuf.next(buffer)
         analyzer.next(sample)
     
-    pth = "validation/outputs/spectral_centroid_mojo_results.csv"
+    pth = "testing/mojo_results/spectral_centroid_mojo_results.csv"
     try:
         with open(pth, "w") as f:
             f.write("windowsize,",windowsize,"\n")

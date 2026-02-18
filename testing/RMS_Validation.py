@@ -9,15 +9,24 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import argparse
 
 sys.path.append(os.getcwd())
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--show-plots", action="store_true", help="Display plots interactively")
+args = parser.parse_args()
+show_plots = args.show_plots
 from mmm_python import *
 
-os.system("mojo run validation/RMS_Validation.mojo")
+os.makedirs("testing/validation_results", exist_ok=True)
+os.makedirs("testing/mojo_results", exist_ok=True)
+os.makedirs("testing/flucoma_sc_results", exist_ok=True)
+
+os.system("mojo run testing/RMS_Validation.mojo")
 print("mojo analysis complete")
 
-with open("validation/outputs/rms_mojo_results.csv", "r") as f:
+with open("testing/mojo_results/rms_mojo_results.csv", "r") as f:
     lines = f.readlines()
     windowsize = int(lines[0].strip().split(",")[1])
     hopsize = int(lines[1].strip().split(",")[1])
@@ -43,8 +52,9 @@ def compare_analyses(list1, list2):
     return np.mean(np.abs(diff)), np.std(diff)
 
 try:
-    os.system("sclang validation/RMS_Validation.scd")
-    scrun = True
+    flucoma_csv_path = "testing/flucoma_sc_results/rms_flucoma_results.csv"
+    if not os.path.exists(flucoma_csv_path):
+        os.system("sclang testing/RMS_Validation.scd")
 except Exception as e:
     print("Error running SuperCollider script (make sure `sclang` can be called from the Terminal):", e)
 
@@ -53,7 +63,7 @@ plt.plot(mojo_rms, label="MMMAudio RMS", alpha=0.7)
 plt.plot(librosa_rms, label="librosa RMS", alpha=0.7)
 
 try:
-    with open("validation/outputs/rms_flucoma_results.csv", "r") as f:
+    with open(flucoma_csv_path, "r") as f:
         lines = f.readlines()
         sclang_rms = []
         for line in lines:
@@ -65,19 +75,22 @@ except Exception as e:
     print("Error reading FluCoMa results:", e)
 
 mean_dev_librosa, std_dev_librosa = compare_analyses(mojo_rms, librosa_rms)
-print(f"MMMAudio vs Librosa RMS: Mean Deviation = {ampdb(float(mean_dev_librosa)):.2f} dB, Std Dev = {ampdb(float(std_dev_librosa)):.2f} dB")
+print(f"MMMAudio vs Librosa RMS: Mean Deviation = {float(mean_dev_librosa)} dB, Std Dev = {float(std_dev_librosa)} dB")
 
 try:
     mean_dev_flucoma, std_dev_flucoma = compare_analyses(mojo_rms, sclang_rms)
-    print(f"MMMAudio vs FluCoMa RMS: Mean Deviation = {ampdb(float(mean_dev_flucoma)):.2f} dB, Std Dev = {ampdb(float(std_dev_flucoma)):.2f} dB")
+    print(f"MMMAudio vs FluCoMa RMS: Mean Deviation = {float(mean_dev_flucoma)} dB, Std Dev = {float(std_dev_flucoma)} dB")
     
     mean_dev_lib_flu, std_dev_lib_flu = compare_analyses(librosa_rms, sclang_rms)
-    print(f"Librosa vs FluCoMa RMS: Mean Deviation = {ampdb(float(mean_dev_lib_flu)):.2f} dB, Std Dev = {ampdb(float(std_dev_lib_flu)):.2f} dB")
+    print(f"Librosa vs FluCoMa RMS: Mean Deviation = {float(mean_dev_lib_flu)} dB, Std Dev = {float(std_dev_lib_flu)} dB")
 except Exception as e:
     print("Error comparing FluCoMa results:", e)
 
 plt.legend()
 plt.ylabel("Amplitude")
 plt.title("RMS Comparison")
-plt.savefig("validation/outputs/rms_comparison.png")
-plt.show()
+plt.savefig("testing/validation_results/rms_comparison.png")
+if show_plots:
+    plt.show()
+else:
+    plt.close()

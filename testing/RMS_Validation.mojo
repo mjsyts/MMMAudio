@@ -2,14 +2,14 @@
 
 from mmm_audio import *
 
-alias windowsize: Int = 1024
-alias hopsize: Int = 512
+comptime windowsize: Int = 1024
+comptime hopsize: Int = 512
 
 struct Analyzer(BufferedProcessable):
-    var world: UnsafePointer[MMMWorld]
+    var world: World
     var rms_values: List[Float64]
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
         self.rms_values = List[Float64]()
 
@@ -20,7 +20,7 @@ struct Analyzer(BufferedProcessable):
 
 fn main():
     world = MMMWorld()
-    w = UnsafePointer(to=world)
+    w = LegacyUnsafePointer(to=world)
     world.sample_rate = 44100.0
 
     buffer = Buffer.load("resources/Shiverer.wav")
@@ -32,7 +32,7 @@ fn main():
         sample = playBuf.next(buffer)
         analyzer.next(sample)
     
-    pth = "validation/outputs/rms_mojo_results.csv"
+    pth = "testing/mojo_results/rms_mojo_results.csv"
     try:
         with open(pth, "w") as f:
             f.write("windowsize,",windowsize,"\n")

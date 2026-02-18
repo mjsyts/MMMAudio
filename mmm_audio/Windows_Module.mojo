@@ -1,5 +1,4 @@
-from .MMMWorld_Module import MMMWorld, Interp, WindowType
-from .Buffer_Module import ListInterpolator
+from mmm_audio import *
 from math import exp, sin, sqrt, cos, pi
 
 struct Windows(Movable, Copyable):
@@ -10,9 +9,9 @@ struct Windows(Movable, Copyable):
     var sine: List[Float64]
     var kaiser: List[Float64]
     var pan2: List[SIMD[DType.float64, 2]]
-    alias size: Int64 = 2048
-    alias size_f64: Float64 = 2048.0
-    alias mask: Int = 2047 # yep, gotta make sure this is size - 1
+    comptime size: Int64 = 2048
+    comptime size_f64: Float64 = 2048.0
+    comptime mask: Int = 2047 # yep, gotta make sure this is size - 1
 
     fn __init__(out self):
         self.hann = hann_window(self.size)
@@ -22,7 +21,7 @@ struct Windows(Movable, Copyable):
         self.kaiser = kaiser_window(self.size, 5.0)
         self.pan2 = pan2_window(256)
 
-    fn at_phase[window_type: Int64,interp: Int = Interp.none](self, world: UnsafePointer[MMMWorld], phase: Float64, prev_phase: Float64 = 0.0) -> Float64:
+    fn at_phase[window_type: Int64,interp: Int = Interp.none](self, world: World, phase: Float64, prev_phase: Float64 = 0.0) -> Float64:
         """Get window value at given phase (0.0 to 1.0) for specified window type."""
 
         @parameter
@@ -49,7 +48,7 @@ struct Windows(Movable, Copyable):
         """Generate a window of specified type and size.
         
         Parameters:
-            window_type: Type of window to generate. Use alias variables from [WindowType](MMMWorld.md/#struct-windowtype) struct (e.g. WindowType.hann).
+            window_type: Type of window to generate. Use comptime variables from [WindowType](MMMWorld.md/#struct-windowtype) struct (e.g. WindowType.hann).
         
         Args:
             size: Length of the window.
@@ -88,7 +87,7 @@ fn rect_window(size: Int64) -> List[Float64]:
         List containing the rectangular window values (all ones).
     """
     var window = List[Float64]()
-    for i in range(size):
+    for _ in range(size):
         window.append(1.0)
     return window.copy()
 
@@ -254,3 +253,4 @@ fn pan2_window(size: Int64) -> List[SIMD[DType.float64, 2]]:
         var angle = (pi / 2.0) * Float64(i) / Float64(size-1)
         table.append(cos(SIMD[DType.float64, 2](angle, (pi / 2.0) - angle)))
     return table^
+

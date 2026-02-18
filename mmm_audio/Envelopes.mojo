@@ -3,10 +3,7 @@
 This module provides an envelope generator class that can create complex envelopes with multiple segments, curves, and looping capabilities.
 """
 
-from .Oscillators import Sweep
-from .MMMWorld_Module import *
-from .functions import *
-from .RisingBoolDetector_Module import RisingBoolDetector
+from mmm_audio import *
 
 struct EnvParams(Representable, Movable, Copyable):
     """Parameters for the Env class.
@@ -30,7 +27,7 @@ struct EnvParams(Representable, Movable, Copyable):
     var loop: Bool
     var time_warp: Float64
 
-    fn __init__(out self, values: List[Float64] = List[Float64](0,1,0), times: List[Float64] = List[Float64](1,1), curves: List[Float64] = List[Float64](1), loop: Bool = False, time_warp: Float64 = 1.0):
+    fn __init__(out self, values: List[Float64] = [0,1,0], times: List[Float64] = [1,1], curves: List[Float64] = [1], loop: Bool = False, time_warp: Float64 = 1.0):
         """Initialize EnvParams.
 
         For information on the arguments, see the documentation of the `Env::next()` method that takes each parameter individually.
@@ -48,8 +45,8 @@ struct EnvParams(Representable, Movable, Copyable):
 struct Env(Representable, Movable, Copyable):
     """Envelope generator with an arbitrary number of segments."""
 
-    var sweep: Sweep  # Sweep for tracking time
-    var rising_bool_detector: RisingBoolDetector  # Track the last trigger state
+    var sweep: Sweep[1]  # Sweep for tracking time
+    var rising_bool_detector: RisingBoolDetector[1]  # Track the last trigger state
     var is_active: Bool  # Flag to indicate if the envelope is active
     var times: List[Float64]  # List of segment durations
     var dur: Float64  # Total duration of the envelope
@@ -57,7 +54,7 @@ struct Env(Representable, Movable, Copyable):
     var trig_point: Float64  # Point at which the asr envelope was triggered
     var last_asr: Float64  # Last output of the asr envelope
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         """Initialize the Env struct.
 
         Args:
@@ -93,7 +90,7 @@ struct Env(Representable, Movable, Copyable):
         else:
             self.freq = 0.0
 
-    fn next(mut self: Env, ref values: List[Float64], ref times: List[Float64] = List[Float64](1,1), ref curves: List[Float64] = List[Float64](1), loop: Bool = False, trig: Bool = True, time_warp: Float64 = 1.0) -> Float64:
+    fn next(mut self: Env, ref values: List[Float64], ref times: List[Float64] = [1,1], ref curves: List[Float64] = [1], loop: Bool = False, trig: Bool = True, time_warp: Float64 = 1.0) -> Float64:
          """Generate the next envelope value.
             
             Args:
@@ -192,11 +189,11 @@ fn min_env[N: Int = 1](phase: SIMD[DType.float64, N] = 0.01, totaldur: SIMD[DTyp
 
 struct ASREnv(Representable, Movable, Copyable):
     """Simple ASR envelope generator."""
-    var sweep: Sweep  # Sweep for tracking time
+    var sweep: Sweep[1]  # Sweep for tracking time
     var bool_changed: Changed  # Track the last trigger state
     var freq: Float64  # Frequency for the envelope
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         """Initialize the ASREnv struct.
         
         Args:

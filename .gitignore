@@ -1,5 +1,8 @@
 .DS_Store
+/*Bridge.mojo
 
+# user files
+mine/
 user_files/
 
 kgen.trace.json.time-events.txt
@@ -12,9 +15,6 @@ __pycache__/
 
 # Mojo cache
 __mojocache__/
-
-# mine
-mine/
 
 # C extensions
 *.so
@@ -156,6 +156,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv*/
 
 # Spyder project settings
 .spyderproject
@@ -221,5 +222,13 @@ __marimo__/
 doc_generation/docs_md
 site
 .vscode
-validation/outputs
+testing/librosa_results
 .venv-257
+venv0257
+pixi.lock
+pixi.toml
+mine.worktrees
+*.o
+testing/outputs
+testing/mojo_results
+testing/validation_results

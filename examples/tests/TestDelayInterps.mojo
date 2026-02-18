@@ -2,7 +2,7 @@
 from mmm_audio import *
 
 struct TestDelayInterps(Movable, Copyable):
-    var world: UnsafePointer[MMMWorld]
+    var world: World
     var buffer: Buffer
     var playBuf: Play
     var delay_none: Delay[interp=Interp.none]
@@ -10,17 +10,17 @@ struct TestDelayInterps(Movable, Copyable):
     var delay_quadratic: Delay[interp=Interp.quad]
     var delay_cubic: Delay[interp=Interp.cubic]
     var delay_lagrange: Delay[interp=Interp.lagrange4]
-    var lag: Lag
-    var lfo: Osc
+    var lag: Lag[]
+    var lfo: Osc[]
     var m: Messenger
-    var mouse_lag: Lag
+    var mouse_lag: Lag[]
     var max_delay_time: Float64
     var lfo_freq: Float64
     var mix: Float64
     var which_delay: Float64
     var mouse_onoff: Float64
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
         self.buffer = Buffer.load("resources/Shiverer.wav")
         self.playBuf = Play(self.world) 

@@ -1,7 +1,7 @@
 from mmm_audio import *
 
-struct BufSynth(Representable, Movable, Copyable):
-    var world: UnsafePointer[MMMWorld] 
+struct BufSynth(Movable, Copyable):
+    var world: World 
     var buffer: Buffer
 
     var num_chans: Int64
@@ -11,10 +11,10 @@ struct BufSynth(Representable, Movable, Copyable):
     
     var moog: VAMoogLadder[2, 1] # 2 channels, os_index == 1 (2x oversampling)
     var lpf_freq: Float64
-    var lpf_freq_lag: Lag
+    var lpf_freq_lag: Lag[]
     var messenger: Messenger
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world 
 
         # load the audio buffer 
@@ -34,7 +34,7 @@ struct BufSynth(Representable, Movable, Copyable):
 
         self.messenger = Messenger(self.world)
 
-    fn next(mut self) -> SIMD[DType.float64, 2]:
+    fn next(mut self) -> MFloat[2]:
         self.messenger.update(self.lpf_freq, "lpf_freq")
         self.messenger.update(self.play_rate, "play_rate")
 
@@ -44,22 +44,15 @@ struct BufSynth(Representable, Movable, Copyable):
         out = self.moog.next(out, freq, 1.0)
         return out
 
-    fn __repr__(self) -> String:
-        return String("BufSynth")
+struct PlayExample(Movable, Copyable):
+    var world: World
 
+    var buf_synth: BufSynth  # Instance of the BufSynth
 
-struct PlayExample(Representable, Movable, Copyable):
-    var world: UnsafePointer[MMMWorld]
-
-    var buf_synth: BufSynth  # Instance of the GrainSynth
-
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
 
         self.buf_synth = BufSynth(self.world)  
 
-    fn __repr__(self) -> String:
-        return String("PlayExample")
-
-    fn next(mut self) -> SIMD[DType.float64, 2]:
+    fn next(mut self) -> MFloat[2]:
         return self.buf_synth.next()  # Return the combined output sample

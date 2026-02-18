@@ -2,10 +2,10 @@ from mmm_audio import *
 
 # this is the simplest possible
 struct In2Out(Representable, Movable, Copyable):
-    var world: UnsafePointer[MMMWorld]
+    var world: World
     var messenger: Messenger
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
         self.messenger = Messenger(self.world)
 

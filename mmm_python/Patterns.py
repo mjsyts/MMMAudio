@@ -9,7 +9,7 @@ Classes:
     Pxrand: Exclusive random pattern that avoids immediate repetition
 """
 
-from random import *
+from random import choice, randint
 from typing import Optional
 
 class Pseq:

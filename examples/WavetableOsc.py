@@ -7,7 +7,7 @@ MMM_Audio can load commercial .wav files, designed for Vital or Serum, as waveta
 Also demonstrates how to use the PVoiceAllocator class to manage multiple voices for polyphonic MIDI input.
 """
 
-from mmm_python.MMMAudio import MMMAudio
+from mmm_python import *
 mmm_audio = MMMAudio(128, graph_name="WavetableOsc", package_name="examples")
 mmm_audio.start_audio() 
 
@@ -80,7 +80,7 @@ def midi_func():
 
             time.sleep(0.01)
     # Start the thread
-    midi_thread = threading.Thread(target=start_midi, daemon=True)
+    midi_thread = threading.Thread(target=start_midi, daemon=False)
     midi_thread.start()
 
 # you will need to run this function to start receiving midi

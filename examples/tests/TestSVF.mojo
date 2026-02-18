@@ -2,19 +2,19 @@
 from mmm_audio import *
 
 struct TestSVF(Movable, Copyable):
-    var world: UnsafePointer[MMMWorld]
-    var osc: LFSaw
-    var filts: List[SVF]
+    var world: World
+    var osc: LFSaw[]
+    var filts: List[SVF[]]
     var messenger: Messenger
     var freq: Float64
     var cutoff: Float64
     var res: Float64
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
         self.osc = LFSaw(self.world)
         self.messenger = Messenger(self.world)
-        self.filts = List[SVF](capacity=2)
+        self.filts = List[SVF[]](capacity=2)
         self.freq = 440
         self.cutoff = 1000.0
         self.res = 1.0

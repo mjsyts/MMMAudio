@@ -1,7 +1,7 @@
 from mmm_audio import *
 
 struct FreeverbSynth(Copyable, Movable):
-    var world: UnsafePointer[MMMWorld] 
+    var world: World 
     var buffer: Buffer
 
     var num_chans: Int64
@@ -16,7 +16,7 @@ struct FreeverbSynth(Copyable, Movable):
     var added_space: Float64
     var mix: Float64
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world 
 
         # load the audio buffer 
@@ -46,16 +46,16 @@ struct FreeverbSynth(Copyable, Movable):
 
         added_space_simd = SIMD[DType.float64, 2](self.added_space, self.added_space * 0.99)
         out = self.play_buf.next[num_chans=2](self.buffer, 1.0, True)
-        out = self.freeverb.next(out, self.room_size, self.lpf_comb, added_space_simd) * 0.2 * self.mix + out * (1.0 - self.mix)
+        out = self.freeverb.next(out, self.room_size, self.lpf_comb, added_space_simd) * 0.1 * self.mix + out * (1.0 - self.mix)
         return out
 
 
 struct FreeverbExample(Representable, Movable, Copyable):
-    var world: UnsafePointer[MMMWorld]
+    var world: World
 
     var freeverb_synth: FreeverbSynth  # Instance of the FreeverbSynth
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
         self.freeverb_synth = FreeverbSynth(self.world)
 

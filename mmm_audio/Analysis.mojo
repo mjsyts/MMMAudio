@@ -1,12 +1,9 @@
-from .MMMWorld_Module import MMMWorld
-from .FFTProcess_Module import *
-from .FFTs import RealFFT
-from math import ceil, floor, log2
-from .functions import cpsmidi, ampdb
+from mmm_audio import *
+from math import ceil, floor, log2, log, exp, sqrt, cos, pi
 from math import sqrt
 
 @doc_private
-fn parabolic_refine(prev: Float64, cur: Float64, next: Float64) -> (Float64, Float64):
+fn parabolic_refine(prev: Float64, cur: Float64, next: Float64) -> Tuple[Float64, Float64]:
     denom = prev - 2.0 * cur + next
     if abs(denom) < 1e-12:
         return (0.0, cur)
@@ -22,11 +19,11 @@ struct YIN[window_size: Int, min_freq: Float64 = 20, max_freq: Float64 = 20000](
         min_freq: The minimum frequency to consider for pitch detection.
         max_freq: The maximum frequency to consider for pitch detection.
     """
-    var world: UnsafePointer[MMMWorld]
+    var world: World
     var pitch: Float64
     var confidence: Float64
     var sample_rate: Float64
-    var fft: RealFFT[window_size * 2]
+    var fft: RealFFT[Self.window_size * 2]
     var fft_input: List[Float64]
     var fft_power_mags: List[Float64]
     var fft_zero_phases: List[Float64]
@@ -34,7 +31,7 @@ struct YIN[window_size: Int, min_freq: Float64 = 20, max_freq: Float64 = 20000](
     var yin_buffer: List[Float64]
     var yin_values: List[Float64]
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         """Initialize the YIN pitch detector.
 
         Args:
@@ -47,13 +44,13 @@ struct YIN[window_size: Int, min_freq: Float64 = 20, max_freq: Float64 = 20000](
         self.pitch = 0.0
         self.confidence = 0.0
         self.sample_rate = self.world[].sample_rate
-        self.fft = RealFFT[window_size * 2]()
-        self.fft_input = List[Float64](length=window_size * 2, fill=0.0)
-        self.fft_power_mags = List[Float64](length=window_size + 1, fill=0.0)
-        self.fft_zero_phases = List[Float64](length=window_size + 1, fill=0.0)
-        self.acf_real = List[Float64](length=window_size * 2, fill=0.0)
-        self.yin_buffer = List[Float64](length=window_size, fill=0.0)
-        self.yin_values = List[Float64](length=window_size, fill=0.0)
+        self.fft = RealFFT[Self.window_size * 2]()
+        self.fft_input = List[Float64](length=Self.window_size * 2, fill=0.0)
+        self.fft_power_mags = List[Float64](length=Self.window_size + 1, fill=0.0)
+        self.fft_zero_phases = List[Float64](length=Self.window_size + 1, fill=0.0)
+        self.acf_real = List[Float64](length=Self.window_size * 2, fill=0.0)
+        self.yin_buffer = List[Float64](length=Self.window_size, fill=0.0)
+        self.yin_values = List[Float64](length=Self.window_size, fill=0.0)
     
     fn next_window(mut self, mut frame: List[Float64]):
         """Compute the YIN pitch estimate for the given frame of audio samples.
@@ -112,8 +109,8 @@ struct YIN[window_size: Int, min_freq: Float64 = 20, max_freq: Float64 = 20000](
         var local_pitch = 0.0
         var local_conf = 0.0
         if tmp_sum > 0.0:
-            var high_freq = max_freq if max_freq > 0.0 else 1.0
-            var low_freq = min_freq if min_freq > 0.0 else 1.0
+            var high_freq = Self.max_freq if Self.max_freq > 0.0 else 1.0
+            var low_freq = Self.min_freq if Self.min_freq > 0.0 else 1.0
             
             var min_bin = Int((self.sample_rate / high_freq) + 0.5)
             var max_bin = Int((self.sample_rate / low_freq) + 0.5)
@@ -176,10 +173,10 @@ struct SpectralCentroid[min_freq: Float64 = 20, max_freq: Float64 = 20000, power
 
     """
 
-    var world: UnsafePointer[MMMWorld]
+    var world: World
     var centroid: Float64
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
         self.centroid = 0.0
 
@@ -211,8 +208,8 @@ struct SpectralCentroid[min_freq: Float64 = 20, max_freq: Float64 = 20000, power
         fft_size: Int = (len(mags) - 1) * 2
         binHz: Float64 = sample_rate / fft_size
 
-        min_bin = Int(ceil(min_freq / binHz))
-        max_bin = Int(floor(max_freq / binHz))
+        min_bin = Int(ceil(Self.min_freq / binHz))
+        max_bin = Int(floor(Self.max_freq / binHz))
         
         min_bin = max(min_bin, 0)
         max_bin = min(max_bin, fft_size // 2)
@@ -227,7 +224,7 @@ struct SpectralCentroid[min_freq: Float64 = 20, max_freq: Float64 = 20000, power
             m: Float64 = mags[i]
 
             @parameter
-            if power_mag:
+            if Self.power_mag:
                 m = m * m
 
             ampsum += m
@@ -278,3 +275,319 @@ struct RMS(BufferedProcessable):
         for v in frame:
             sum_sq += v * v
         return sqrt(sum_sq / Float64(len(frame)))
+
+struct MelBands[num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64 = 20000.0, fft_size: Int = 1024, power: Float64 = 2.0](FFTProcessable):
+    """Mel Bands analysis.
+
+    This implementation follows the approach used in the [Librosa](https://librosa.org/) library. 
+
+    Parameters:
+        num_bands: The number of mel bands to compute.
+        min_freq: The minimum frequency (in Hz) to consider when computing the mel bands.
+        max_freq: The maximum frequency (in Hz) to consider when computing the mel bands.
+        fft_size: The size of the FFT being used to compute the mel bands.
+        power: Exponent applied to magnitudes before mel filtering (librosa default is 2.0 for power).
+    """
+
+    var world: World
+    var weights: List[List[Float64]]
+    var bands: List[Float64]
+
+    fn __init__(out self, world: World):
+        self.world = world
+
+        self.weights = List[List[Float64]](length=Self.num_bands,fill=List[Float64](length=(self.fft_size // 2) + 1, fill=0.0))
+        self.bands = List[Float64](length=Self.num_bands, fill=0.0)
+        self.make_weights()
+
+    fn next_frame(mut self, mut mags: List[Float64], mut phases: List[Float64]) -> None:
+        """Compute the mel bands for a given FFT analysis.
+
+        This function is to be used by FFTProcess if MelBands is passed as the "process".
+
+        Nothing is returned from this function, but the computed mel band values are stored in self.bands.
+
+        Args:
+            mags: The input magnitudes as a List of Float64.
+            phases: The input phases as a List of Float64.
+        """
+        self.from_mags(mags)
+
+    fn from_mags(mut self, ref mags: List[Float64]):
+        """Compute the mel bands for a given list of magnitudes.
+
+        This function is useful when there is an FFT already computed, perhaps as 
+        part of a custom struct that implements the [FFTProcessable](FFTProcess.md/#trait-fftprocessable) trait.
+
+        Args:
+            mags: The input magnitudes as a List of Float64.
+        """
+        for i in range(Self.num_bands):
+            band_energy: Float64 = 0.0
+            for j in range(len(mags)):
+                var mag_val: Float64
+                if Self.power == 1.0:
+                    mag_val = mags[j]
+                elif Self.power == 2.0:
+                    mag_val = mags[j] * mags[j]
+                else:
+                    mag_val = mags[j] ** Self.power
+                band_energy += self.weights[i][j] * mag_val
+            self.bands[i] = band_energy
+    
+    @doc_private
+    fn make_weights(mut self):
+        """Compute the mel filter bank weights."""
+
+        fftfreqs = RealFFT.fft_frequencies(sr=self.world[].sample_rate, n_fft=self.fft_size)
+
+        # 'Center freqs' of mel bands - uniformly spaced between limits
+        mel_f = MelBands.mel_frequencies(Self.num_bands + 2, fmin=Self.min_freq, fmax=Self.max_freq)
+
+        fdiff = diff(mel_f)
+        ramps = subtract_outer(mel_f, fftfreqs)
+
+        for i in range(Self.num_bands):
+            lower: List[Float64] = List[Float64](length=len(ramps[i]), fill=0.0)
+            for j in range(len(ramps[i])):
+                lower[j] = -ramps[i][j] / fdiff[i]
+            upper: List[Float64] = List[Float64](length=len(ramps[i]), fill=0.0)
+            for j in range(len(ramps[i])):
+                upper[j] = ramps[i + 2][j] / fdiff[i + 1]
+
+            for j in range(len(ramps[i])):
+                self.weights[i][j] = max(0.0, min(lower[j], upper[j]))
+
+        # Slaney-style mel
+        var enorm = List[Float64](length=Self.num_bands, fill=0.0)
+        for i in range(Self.num_bands):
+            enorm[i] = 2.0 / (mel_f[i + 2] - mel_f[i])
+        
+        for i in range(Self.num_bands):
+            for j in range(len(self.weights[i])):
+                self.weights[i][j] *= enorm[i]
+
+    @staticmethod
+    fn mel_frequencies(n_mels: Int = 128, fmin: Float64 = 0.0, fmax: Float64 = 20000.0) -> List[Float64]:
+        """Compute an array of acoustic frequencies tuned to the mel scale.
+
+        This implementation is based on Librosa's eponymous [function](https://librosa.org/doc/main/generated/librosa.mel_frequencies.html).  For more information on mel frequencies space see the [MelBands](Analysis.md/#struct-melbands) documentation.
+
+        Args:
+            n_mels: The number of mel bands to generate.
+            fmin: The lowest frequency (in Hz).
+            fmax: The highest frequency (in Hz).
+
+        Returns:
+            A List of Float64 representing the center frequencies of each mel band.
+        """
+
+        min_mel = MelBands.hz_to_mel(fmin)
+        max_mel = MelBands.hz_to_mel(fmax)
+
+        mels = linspace(min_mel, max_mel, n_mels)
+
+        var hz = List[Float64](length=n_mels, fill=0.0)
+        for i in range(n_mels):
+            hz[i] = MelBands.mel_to_hz(mels[i])
+        return hz^
+
+    @staticmethod
+    fn hz_to_mel[num_chans: Int = 1](freq: SIMD[DType.float64,num_chans]) -> SIMD[DType.float64,num_chans]:
+        """Convert Hz to Mels.
+
+        This implementation is based on Librosa's eponymous [function](https://librosa.org/doc/main/generated/librosa.hz_to_mel.html). For more information on mel frequencies space see the [MelBands](Analysis.md/#struct-melbands) documentation.
+
+        Parameters:
+            num_chans: Size of the SIMD vector. This parameter is inferred by the values passed to the function.
+
+        Args:
+            freq: The frequencies in Hz to convert.
+        
+        Returns:
+            The corresponding mel frequencies.
+        """
+
+        # "HTK" is a different way to compute mels. It is not implemented in MMMAudio, but
+        # commented out here in case it becomes useful in the future.
+        # if htk:
+        #     return 2595.0 * log10(1.0 + freq / 700.0)
+
+        f_min = 0.0
+        f_sp = 200.0 / 3
+
+        mels = (freq - f_min) / f_sp
+
+        min_log_hz = 1000.0  # beginning of log region (Hz)
+        min_log_mel = (min_log_hz - f_min) / f_sp  # same (Mels)
+        logstep = log(6.4) / 27.0  # step size for log region
+
+        if freq >= min_log_hz:
+            mels = min_log_mel + log(freq / min_log_hz) / logstep
+
+        return mels
+
+    @staticmethod
+    fn mel_to_hz[num_chans: Int = 1](mel: SIMD[DType.float64,num_chans]) -> SIMD[DType.float64,num_chans]:
+        """Convert mel bin numbers to frequencies.
+
+        This implementation is based on Librosa's eponymous [function](https://librosa.org/doc/main/generated/librosa.mel_to_hz.html). For more information on mel frequencies space see the [MelBands](Analysis.md/#struct-melbands) documentation.
+        """
+
+        # "HTK" is a different way to compute mels. It is not implemented in MMMAudio, but
+        # commented out here in case it becomes useful in the future.
+        # if htk:
+        #     return 700.0 * (10.0 ** (mel / 2595.0) - 1.0)
+
+        # Fill in the linear scale
+        f_min = 0.0
+        f_sp = 200.0 / 3
+        freq = f_min + f_sp * mel
+
+        # And now the nonlinear scale
+        min_log_hz = 1000.0  # beginning of log region (Hz)
+        min_log_mel = (min_log_hz - f_min) / f_sp  # same (Mels)
+        logstep = log(6.4) / 27.0  # step size for log region
+
+        if mel >= min_log_mel:
+            freq = min_log_hz * exp(logstep * (mel - min_log_mel))
+
+        return freq
+
+struct MFCC[num_coeffs: Int = 13, num_bands: Int = 40, min_freq: Float64 = 20.0, max_freq: Float64 = 20000.0, fft_size: Int = 1024](FFTProcessable):
+    """Mel-Frequency Cepstral Coefficients (MFCC) analysis.
+
+    Parameters:
+        num_coeffs: The number of MFCC coefficients to compute.
+        num_bands: The number of mel bands to use when computing the MFCCs.
+        min_freq: The minimum frequency (in Hz) to consider when computing the MFCCs.
+        max_freq: The maximum frequency (in Hz) to consider when computing the MFCCs.
+        fft_size: The size of the FFT being used to compute the MFCCs.
+    """
+
+    var world: World
+    var mel_bands: MelBands[Self.num_bands, Self.min_freq, Self.max_freq, Self.fft_size]
+    var bands: List[Float64]
+    var dct: DCT[Self.num_bands, Self.num_coeffs]
+    var coeffs: List[Float64]
+
+    fn __init__(out self, world: World):
+        self.world = world
+        self.mel_bands = MelBands[Self.num_bands, Self.min_freq, Self.max_freq, Self.fft_size](world)
+        self.dct = DCT[Self.num_bands, Self.num_coeffs]()
+        self.bands = List[Float64](length=Self.num_bands, fill=0.0)
+        self.coeffs = List[Float64](length=Self.num_coeffs, fill=0.0)
+
+    fn next_frame(mut self, mut mags: List[Float64], mut phases: List[Float64]) -> None:
+        """Compute the MFCCs for a given FFT analysis.
+
+        This function is to be used by [FFTProcess](FFTProcess.md/#struct-fftprocess) if MFCC is passed as the "process".
+
+        Nothing is returned from this function, but the computed MFCC values are stored in self.coeffs.
+
+        Args:
+            mags: The input magnitudes as a List of Float64.
+            phases: The input phases as a List of Float64.
+        """
+        self.from_mags(mags)
+
+    fn from_mags(mut self, ref mags: List[Float64]):
+        """Compute the MFCCs for a given list of magnitudes.
+        
+        This function is useful when there is an FFT already computed, 
+        perhaps as part of a custom struct that implements the [FFTProcessable](FFTProcess.md/#trait-fftprocessable) trait.
+        
+        Nothing is returned from this function, but the computed MFCC values are stored in self.coeffs.
+
+        Args:
+            mags: The input magnitudes as a List of Float64.
+        """
+        self.mel_bands.from_mags(mags)
+        self.from_mel_bands_internal()
+
+    @doc_private
+    fn from_mel_bands_internal(mut self):
+        """Compute the MFCCs using self.mel_bands.bands.
+        """
+        comptime max_db_range: Float64 = 80.0
+
+        var max_db: Float64 = -1.0e30
+        for i in range(len(self.mel_bands.bands)):
+            var db = power_to_db(self.mel_bands.bands[i])
+            self.bands[i] = db
+            if db > max_db:
+                max_db = db
+
+        var min_db = max_db - max_db_range
+        for i in range(len(self.bands)):
+            if self.bands[i] < min_db:
+                self.bands[i] = min_db
+
+        self.dct.process(self.bands, self.coeffs)
+
+    fn from_mel_bands(mut self, ref mbands: List[Float64]):
+        """Compute the MFCCs for a given list of mel band energies.
+
+        This function is useful when there is a mel band analysis already computed, perhaps as part of a custom struct that implements the [FFTProcessable](FFTProcess.md/#trait-fftprocessable) trait.
+
+        Nothing is returned from this function, but the computed MFCC values are stored in self.coeffs.
+
+        Args:
+            mbands: The input mel band energies as a List of Float64.
+        """
+        comptime max_db_range: Float64 = 80.0
+
+        var max_db: Float64 = -1.0e30
+        # iterate over passed mel bands ref:
+        for i in range(len(mbands)):
+            var db = power_to_db(mbands[i])
+            self.bands[i] = db
+            if db > max_db:
+                max_db = db
+
+        var min_db = max_db - max_db_range
+        for i in range(len(self.bands)):
+            if self.bands[i] < min_db:
+                self.bands[i] = min_db
+
+        self.dct.process(self.bands, self.coeffs)
+
+struct DCT[input_size: Int, output_size: Int](Movable,Copyable):
+    """Compute the Discrete Cosine Transform (DCT)."""
+
+    var weights: List[List[Float64]]
+
+    fn __init__(out self):
+        self.weights = List[List[Float64]](length=Self.output_size, fill=List[Float64](length=Self.input_size, fill=0.0))
+        self.make_weights()
+
+    fn process(mut self, ref input: List[Float64], mut output: List[Float64]) -> None:
+        """Compute the first `output_size` DCT-II coefficients for `input`.
+
+        Nothing is returned from this function, but the computed DCT coefficients are stored in the `output` List passed as an argument.
+
+        Args:
+            input: Input vector of length `input_size`.
+            output: Output vector of length `output_size`.
+        """
+        for k in range(Self.output_size):
+            var acc: Float64 = 0.0
+            for n in range(Self.input_size):
+                acc += self.weights[k][n] * input[n]
+            output[k] = acc
+
+    @doc_private
+    fn make_weights(mut self):
+        """Precompute the DCT-II weight matrix."""
+        var n_inv = 1.0 / Float64(Self.input_size)
+        var scale0 = sqrt(n_inv)
+        var scale = sqrt(2.0 * n_inv)
+        var n_f = Float64(Self.input_size)
+
+        for k in range(Self.output_size):
+            var alpha = scale0 if k == 0 else scale
+            var k_f = Float64(k)
+            for n in range(Self.input_size):
+                var n_f_idx = Float64(n) + 0.5
+                var angle = (pi / n_f) * n_f_idx * k_f
+                self.weights[k][n] = alpha * cos(angle)
