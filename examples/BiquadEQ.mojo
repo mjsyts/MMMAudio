@@ -1,18 +1,19 @@
 from mmm_audio import *
 
-struct BiquadEQ(Movable, Copyable):
-    """5-band parametric EQ using Biquad filters.
+struct EQSynth(Movable, Copyable):
+    """5-band parametric EQ processor using Biquad filters.
     
     Demonstrates: lowshelf, 3x bell, highshelf
     """
-    var world: UnsafePointer[MMMWorld]
-    var buf: Buffer
-    var play: Play
-    var lowshelf: Biquad
-    var bell1: Biquad
-    var bell2: Biquad
-    var bell3: Biquad
-    var highshelf: Biquad
+    var world: World
+    var buffer: Buffer
+    var num_chans: Int64
+    var play_buf: Play
+    var lowshelf: Biquad[1]
+    var bell1: Biquad[1]
+    var bell2: Biquad[1]
+    var bell3: Biquad[1]
+    var highshelf: Biquad[1]
     var messenger: Messenger
     
     # EQ parameters
@@ -29,17 +30,23 @@ struct BiquadEQ(Movable, Copyable):
     var b3_q: Float64
     var hs_freq: Float64
     var hs_gain: Float64
-    var playing: Bool
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
-        self.buf = Buffer.load("resources/Shiverer.wav")
-        self.play = Play(self.world)
-        self.lowshelf = Biquad(self.world)
-        self.bell1 = Biquad(self.world)
-        self.bell2 = Biquad(self.world)
-        self.bell3 = Biquad(self.world)
-        self.highshelf = Biquad(self.world)
+        
+        # Load the audio buffer
+        self.buffer = Buffer.load("resources/Shiverer.wav")
+        self.num_chans = self.buffer.num_chans
+        
+        # without printing this, the compiler wants to free the buffer for some reason
+        print("Loaded buffer with", self.buffer.num_chans, "channels and", self.buffer.num_frames, "frames.")
+        
+        self.play_buf = Play(self.world)
+        self.lowshelf = Biquad[1](self.world)
+        self.bell1 = Biquad[1](self.world)
+        self.bell2 = Biquad[1](self.world)
+        self.bell3 = Biquad[1](self.world)
+        self.highshelf = Biquad[1](self.world)
         self.messenger = Messenger(self.world)
         
         # Default EQ settings (flat response)
@@ -56,11 +63,9 @@ struct BiquadEQ(Movable, Copyable):
         self.b3_q = 1.0
         self.hs_freq = 8000.0
         self.hs_gain = 0.0
-        self.playing = True
 
-    fn next(mut self) -> SIMD[DType.float64, 2]:
-        # Update all parameters from messages
-        self.messenger.update(self.playing, "playing")
+    fn next(mut self) -> MFloat[2]:
+        # Update parameters from messages
         self.messenger.update(self.ls_freq, "ls_freq")
         self.messenger.update(self.ls_gain, "ls_gain")
         self.messenger.update(self.b1_freq, "b1_freq")
@@ -75,16 +80,18 @@ struct BiquadEQ(Movable, Copyable):
         self.messenger.update(self.hs_freq, "hs_freq")
         self.messenger.update(self.hs_gain, "hs_gain")
         
-        # Get stereo sample from buffer
-        var sample = self.play.next[num_chans=2](self.buf, 1 if self.playing else 0)
+        # Get stereo sample from buffer and return it directly
+        out = self.play_buf.next[num_chans=2](self.buffer, 1.0, True)
         
-        # Process left channel through EQ chain
-        var left = sample[0]
-        left = self.lowshelf.lowshelf(left, self.ls_freq, 0.7, self.ls_gain)
-        left = self.bell1.bell(left, self.b1_freq, self.b1_q, self.b1_gain)
-        left = self.bell2.bell(left, self.b2_freq, self.b2_q, self.b2_gain)
-        left = self.bell3.bell(left, self.b3_freq, self.b3_q, self.b3_gain)
-        left = self.highshelf.highshelf(left, self.hs_freq, 0.7, self.hs_gain)
-        
-        # For simplicity, duplicate to stereo (or create separate filters for right)
-        return SIMD[DType.float64, 2](left, left) * 0.8
+        return out
+
+struct BiquadEQ(Movable, Copyable):
+    var world: World
+    var eq_synth: EQSynth
+
+    fn __init__(out self, world: World):
+        self.world = world
+        self.eq_synth = EQSynth(self.world)
+
+    fn next(mut self) -> MFloat[2]:
+        return self.eq_synth.next()
