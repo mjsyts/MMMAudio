@@ -9,11 +9,11 @@ struct EQSynth(Movable, Copyable):
     var buffer: Buffer
     var num_chans: Int64
     var play_buf: Play
-    var lowshelf: Biquad[1]
-    var bell1: Biquad[1]
-    var bell2: Biquad[1]
-    var bell3: Biquad[1]
-    var highshelf: Biquad[1]
+    var lowshelf: Biquad[2]
+    var bell1: Biquad[2]
+    var bell2: Biquad[2]
+    var bell3: Biquad[2]
+    var highshelf: Biquad[2]
     var messenger: Messenger
     
     # EQ parameters
@@ -42,11 +42,11 @@ struct EQSynth(Movable, Copyable):
         print("Loaded buffer with", self.buffer.num_chans, "channels and", self.buffer.num_frames, "frames.")
         
         self.play_buf = Play(self.world)
-        self.lowshelf = Biquad[1](self.world)
-        self.bell1 = Biquad[1](self.world)
-        self.bell2 = Biquad[1](self.world)
-        self.bell3 = Biquad[1](self.world)
-        self.highshelf = Biquad[1](self.world)
+        self.lowshelf = Biquad[2](self.world)
+        self.bell1 = Biquad[2](self.world)
+        self.bell2 = Biquad[2](self.world)
+        self.bell3 = Biquad[2](self.world)
+        self.highshelf = Biquad[2](self.world)
         self.messenger = Messenger(self.world)
         
         # Default EQ settings (flat response)
@@ -65,7 +65,6 @@ struct EQSynth(Movable, Copyable):
         self.hs_gain = 0.0
 
     fn next(mut self) -> MFloat[2]:
-        # Update parameters from messages
         self.messenger.update(self.ls_freq, "ls_freq")
         self.messenger.update(self.ls_gain, "ls_gain")
         self.messenger.update(self.b1_freq, "b1_freq")
@@ -80,8 +79,13 @@ struct EQSynth(Movable, Copyable):
         self.messenger.update(self.hs_freq, "hs_freq")
         self.messenger.update(self.hs_gain, "hs_gain")
         
-        # Get stereo sample from buffer and return it directly
-        out = self.play_buf.next[num_chans=2](self.buffer, 1.0, True)
+        var out = self.play_buf.next[num_chans=2](self.buffer, 1.0, True)
+        
+        out = self.lowshelf.lowshelf(out, self.ls_freq, 0.707, self.ls_gain)
+        out = self.bell1.bell(out, self.b1_freq, self.b1_q, self.b1_gain)
+        out = self.bell2.bell(out, self.b2_freq, self.b2_q, self.b2_gain)
+        out = self.bell3.bell(out, self.b3_freq, self.b3_q, self.b3_gain)
+        out = self.highshelf.highshelf(out, self.hs_freq, 0.707, self.hs_gain)
         
         return out
 
