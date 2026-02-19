@@ -93,35 +93,35 @@ def test_dct():
     for i in range(len(output_vals)):
         assert_almost_equal(output_vals[i], expected[i], "Test: DCT coefficient mismatch")
 
-# def test_mfcc_paths_consistency():
-#     """Ensure MFCC outputs match across next_frame, from_mags, and from_mel_bands."""
-#     comptime fft_size: Int = 64
-#     comptime num_bands: Int = 8
-#     comptime num_coeffs: Int = 4
+def test_mfcc_paths_consistency():
+    """Ensure MFCC outputs match across next_frame, from_mags, and from_mel_bands."""
+    comptime fft_size: Int = 64
+    comptime num_bands: Int = 8
+    comptime num_coeffs: Int = 4
 
-#     w = alloc[MMMWorld](1) 
-#     w.init_pointee_move(MMMWorld(48000.0))
+    w = alloc[MMMWorld](1) 
+    w.init_pointee_move(MMMWorld(48000.0))
 
-#     mags = List[Float64](length=(fft_size // 2) + 1, fill=0.0)
-#     phases = List[Float64](length=(fft_size // 2) + 1, fill=0.0)
+    mags = List[Float64](length=(fft_size // 2) + 1, fill=0.0)
+    phases = List[Float64](length=(fft_size // 2) + 1, fill=0.0)
 
-#     for i in range(len(mags)):
-#         mags[i] = 0.001 + 0.001 * Float64(i)
+    for i in range(len(mags)):
+        mags[i] = 0.001 + 0.001 * Float64(i)
 
-#     mel = MelBands[num_bands=num_bands,min_freq=20.0,max_freq=20000.0,fft_size=fft_size](w)
-#     mel.from_mags(mags)
+    mel = MelBands[num_bands=num_bands,min_freq=20.0,max_freq=20000.0,fft_size=fft_size](w)
+    mel.from_mags(mags)
 
-#     mfcc_next = MFCC[num_coeffs=num_coeffs,num_bands=num_bands,min_freq=20.0,max_freq=20000.0,fft_size=fft_size](w)
-#     mfcc_mags = MFCC[num_coeffs=num_coeffs,num_bands=num_bands,min_freq=20.0,max_freq=20000.0,fft_size=fft_size](w)
-#     mfcc_bands = MFCC[num_coeffs=num_coeffs,num_bands=num_bands,min_freq=20.0,max_freq=20000.0,fft_size=fft_size](w)
+    mfcc_next = MFCC[num_coeffs=num_coeffs,num_bands=num_bands,min_freq=20.0,max_freq=20000.0,fft_size=fft_size](w)
+    mfcc_mags = MFCC[num_coeffs=num_coeffs,num_bands=num_bands,min_freq=20.0,max_freq=20000.0,fft_size=fft_size](w)
+    mfcc_bands = MFCC[num_coeffs=num_coeffs,num_bands=num_bands,min_freq=20.0,max_freq=20000.0,fft_size=fft_size](w)
 
-#     mfcc_next.next_frame(mags, phases)
-#     mfcc_mags.from_mags(mags)
-#     mfcc_bands.from_mel_bands(mel.bands)
+    mfcc_next.next_frame(mags, phases)
+    mfcc_mags.from_mags(mags)
+    mfcc_bands.from_mel_bands(mel.bands)
 
-#     for i in range(num_coeffs):
-#         assert_almost_equal(mfcc_next.coeffs[i], mfcc_mags.coeffs[i], "Test: MFCC next_frame vs from_mags mismatch")
-#         assert_almost_equal(mfcc_next.coeffs[i], mfcc_bands.coeffs[i], "Test: MFCC next_frame vs from_mel_bands mismatch")
+    for i in range(num_coeffs):
+        assert_almost_equal(mfcc_next.coeffs[i], mfcc_mags.coeffs[i], "Test: MFCC next_frame vs from_mags mismatch")
+        assert_almost_equal(mfcc_next.coeffs[i], mfcc_bands.coeffs[i], "Test: MFCC next_frame vs from_mel_bands mismatch")
 
 def _test_mel_bands_weights[n_mels: Int, n_fft: Int, sr: Int]():
     w = alloc[MMMWorld](1) 
