@@ -1258,7 +1258,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         q: SIMD[DType.float64, Self.num_chans]
     ) -> SIMD[DType.float64, Self.num_chans]:
         """
-        Process input through a biquad lowpass filter.
+        Process input through a biquad lowpass filter. Passes frequencies below the cutoff while attenuating frequencies above it.
 
         Args:
             input: The input signal to process.
@@ -1278,7 +1278,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         q: SIMD[DType.float64, Self.num_chans]
     ) -> SIMD[DType.float64, Self.num_chans]:
         """
-        Process input through a biquad highpass filter.
+        Process input through a biquad highpass filter. Passes frequencies above the cutoff while attenuating frequencies below it.
 
         Args:
             input: The input signal to process.
@@ -1298,7 +1298,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         q: SIMD[DType.float64, Self.num_chans]
     ) -> SIMD[DType.float64, Self.num_chans]:
         """
-        Process input through a biquad bandpass filter.
+        Process input through a biquad bandpass filter. Passes a band of frequencies centered at the cutoff while attenuating frequencies above and below.
 
         Args:
             input: The input signal to process.
@@ -1318,7 +1318,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         q: SIMD[DType.float64, Self.num_chans]
     ) -> SIMD[DType.float64, Self.num_chans]:
         """
-        Process input through a biquad notch (band-reject) filter.
+        Process input through a biquad notch (band stop) filter. Attenuates a narrow band of frequencies centered at the cutoff while passing all others. 
 
         Args:
             input: The input signal to process.
@@ -1338,7 +1338,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         q: SIMD[DType.float64, Self.num_chans]
     ) -> SIMD[DType.float64, Self.num_chans]:
         """
-        Process input through a biquad allpass filter.
+        Process input through a biquad allpass filter. Passes all frequencies at equal amplitude while shifting their phase relationship around the cutoff frequency.
 
         Args:
             input: The input signal to process.
@@ -1359,7 +1359,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         gain_db: SIMD[DType.float64, Self.num_chans]
     ) -> SIMD[DType.float64, Self.num_chans]:
         """
-        Process input through a biquad bell (peaking EQ) filter.
+        Process input through a biquad bell (peaking EQ) filter. Boosts or cuts a band of frequencies centered at the cutoff by a specified gain amount, leaving frequencies outside the band unaffected.
 
         Args:
             input: The input signal to process.
@@ -1381,7 +1381,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         gain_db: SIMD[DType.float64, Self.num_chans]
     ) -> SIMD[DType.float64, Self.num_chans]:
         """
-        Process input through a biquad lowshelf filter.
+        Process input through a biquad lowshelf filter. Boosts or cuts all frequencies below the cutoff by a specified gain amount, leaving frequencies above unaffected.
 
         Args:
             input: The input signal to process.
@@ -1403,7 +1403,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         gain_db: SIMD[DType.float64, Self.num_chans]
     ) -> SIMD[DType.float64, Self.num_chans]:
         """
-        Process input through a biquad highshelf filter.
+        Process input through a biquad highshelf filter. Boosts or cuts all frequencies above the cutoff by a specified gain amount, leaving frequencies below unaffected.
 
         Args:
             input: The input signal to process.
