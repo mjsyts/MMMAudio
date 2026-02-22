@@ -8,9 +8,25 @@ import ctypes
 from multiprocessing import Process, Value, Event, Queue, Array
 from math import ceil
 from typing import Optional, Tuple, List
+from enum import IntEnum
 import mojo.importer
 
 import pyautogui
+
+
+class AudioCommand(IntEnum):
+    STOP_PROCESS = 0
+    START_AUDIO = 1
+    STOP_AUDIO = 2
+    SEND_BOOL = 3
+    SEND_FLOAT = 4
+    SEND_FLOATS = 5
+    SEND_INT = 6
+    SEND_INTS = 7
+    SEND_TRIG = 8
+    SEND_STRING = 9
+    SEND_STRINGS = 10
+    GET_SAMPLES = 11
 
 class MMMAudio:
     """
@@ -117,7 +133,7 @@ class MMMAudio:
         self.stop_flag.set()
         
         # Send stop command
-        self.command_queue.put(("STOP_PROCESS", None))
+        self.command_queue.put((AudioCommand.STOP_PROCESS, None))
         
         self.process.join(timeout=5.0)
         if self.process.is_alive():
@@ -130,11 +146,11 @@ class MMMAudio:
     
     def start_audio(self):
         """Start audio streaming in the audio process"""
-        self.command_queue.put(("START_AUDIO", None))
+        self.command_queue.put((AudioCommand.START_AUDIO, None))
     
     def stop_audio(self):
         """Stop audio streaming in the audio process"""
-        self.command_queue.put(("STOP_AUDIO", None))
+        self.command_queue.put((AudioCommand.STOP_AUDIO, None))
     
     def is_running(self) -> bool:
         """Check if audio is currently running"""
@@ -150,35 +166,35 @@ class MMMAudio:
     
     def send_bool(self, key: str, value: bool):
         """Send a bool message to the Mojo audio engine."""
-        self.command_queue.put(("SEND_BOOL", (key, value)))
+        self.command_queue.put((AudioCommand.SEND_BOOL, (key, value)))
     
     def send_float(self, key: str, value: float):
         """Send a float to the Mojo audio engine."""
-        self.command_queue.put(("SEND_FLOAT", (key, value)))
+        self.command_queue.put((AudioCommand.SEND_FLOAT, (key, value)))
     
     def send_floats(self, key: str, values: List[float]):
         """Send a list of floats to the Mojo audio engine."""
-        self.command_queue.put(("SEND_FLOATS", (key, values)))
+        self.command_queue.put((AudioCommand.SEND_FLOATS, (key, values)))
     
     def send_int(self, key: str, value: int):
         """Send an integer to the Mojo audio engine."""
-        self.command_queue.put(("SEND_INT", (key, value)))
+        self.command_queue.put((AudioCommand.SEND_INT, (key, value)))
     
     def send_ints(self, key: str, values: List[int]):
         """Send a list of integers to the Mojo audio engine."""
-        self.command_queue.put(("SEND_INTS", (key, values)))
+        self.command_queue.put((AudioCommand.SEND_INTS, (key, values)))
     
     def send_trig(self, key: str):
         """Send a trigger message to the Mojo audio engine."""
-        self.command_queue.put(("SEND_TRIG", (key,)))
+        self.command_queue.put((AudioCommand.SEND_TRIG, (key,)))
     
     def send_string(self, key: str, value: str):
         """Send a string message to the Mojo audio engine."""
-        self.command_queue.put(("SEND_STRING", (key, value)))
+        self.command_queue.put((AudioCommand.SEND_STRING, (key, value)))
     
     def send_strings(self, key: str, args: List[str]):
         """Send a list of string messages to the Mojo audio engine."""
-        self.command_queue.put(("SEND_STRINGS", (key, args)))
+        self.command_queue.put((AudioCommand.SEND_STRINGS, (key, args)))
     
     # =========================================================================
     # Methods that need response from audio process
@@ -186,7 +202,7 @@ class MMMAudio:
     
     def get_samples(self, samples: int) -> np.ndarray:
         """Get samples from the audio process (blocking call)."""
-        self.command_queue.put(("GET_SAMPLES", samples))
+        self.command_queue.put((AudioCommand.GET_SAMPLES, samples))
         
         # Wait for response
         try:
@@ -466,111 +482,149 @@ class MMMAudio:
         # =========================================================================
         # Command processing loop
         # =========================================================================
+        def handle_stop_process(args):
+            print(f"[PID {pid}] Received stop command")
+            sys.stdout.flush()
+            return False
+
+        def handle_start_audio(args):
+            audio_active.set()
+            audio_running.value = True
+            print(f"[PID {pid}] Audio activated")
+            sys.stdout.flush()
+            return True
+
+        def handle_stop_audio(args):
+            audio_active.clear()
+            audio_running.value = False
+            # Clear the input queue
+            while not input_queue.empty():
+                try:
+                    input_queue.get_nowait()
+                except:
+                    break
+            print(f"[PID {pid}] Audio deactivated")
+            sys.stdout.flush()
+            return True
+
+        def handle_send_bool(args):
+            key, value = args
+            with bridge_lock:
+                mmm_audio_bridge.update_bool_msg([key, value])
+            return True
+
+        def handle_send_float(args):
+            key, value = args
+            with bridge_lock:
+                mmm_audio_bridge.update_float_msg([key, value])
+            return True
+
+        def handle_send_floats(args):
+            key, values = args
+            key_vals = [key]
+            key_vals.extend(values)
+            with bridge_lock:
+                mmm_audio_bridge.update_floats_msg(key_vals)
+            return True
+
+        def handle_send_int(args):
+            key, value = args
+            with bridge_lock:
+                mmm_audio_bridge.update_int_msg([key, value])
+            return True
+
+        def handle_send_ints(args):
+            key, values = args
+            key_vals = [key]
+            key_vals.extend([int(i) for i in values])
+            with bridge_lock:
+                mmm_audio_bridge.update_ints_msg(key_vals)
+            return True
+
+        def handle_send_trig(args):
+            key = args[0]
+            with bridge_lock:
+                mmm_audio_bridge.update_trig_msg([key])
+            return True
+
+        def handle_send_string(args):
+            key, value = args
+            with bridge_lock:
+                mmm_audio_bridge.update_string_msg([key, str(value)])
+            return True
+
+        def handle_send_strings(args):
+            key, values = args
+            key_vals = [key]
+            key_vals.extend(values)
+            with bridge_lock:
+                mmm_audio_bridge.update_strings_msg(key_vals)
+            return True
+
+        def handle_get_samples(args):
+            samples = args
+            blocks = ceil(samples / blocksize)
+            waveform = np.zeros(
+                samples * actual_output_channels,
+                dtype=np.float64
+            ).reshape(samples, actual_output_channels)
+
+            in_buf = np.zeros(
+                (blocksize, actual_input_channels),
+                dtype=np.float64
+            )
+            temp_out = np.zeros(
+                (blocksize, actual_output_channels),
+                dtype=np.float64
+            )
+
+            with bridge_lock:
+                for i in range(blocks):
+                    mmm_audio_bridge.next(in_buf, temp_out)
+                    for j in range(temp_out.shape[0]):
+                        if i * blocksize + j < samples:
+                            waveform[i * blocksize + j] = temp_out[j]
+
+            response_queue.put(("SAMPLES", waveform))
+            return True
+
+        command_handlers = [
+            handle_stop_process,
+            handle_start_audio,
+            handle_stop_audio,
+            handle_send_bool,
+            handle_send_float,
+            handle_send_floats,
+            handle_send_int,
+            handle_send_ints,
+            handle_send_trig,
+            handle_send_string,
+            handle_send_strings,
+            handle_get_samples,
+        ]
+
         while not stop_flag.is_set():
             try:
                 try:
                     command, args = command_queue.get(timeout=0.1)
                 except:
                     continue
-                
-                if command == "STOP_PROCESS":
-                    print(f"[PID {pid}] Received stop command")
-                    sys.stdout.flush()
-                    break
-                
-                elif command == "START_AUDIO":
-                    audio_active.set()
-                    audio_running.value = True
-                    print(f"[PID {pid}] Audio activated")
-                    sys.stdout.flush()
-                
-                elif command == "STOP_AUDIO":
-                    audio_active.clear()
-                    audio_running.value = False
-                    # Clear the input queue
-                    while not input_queue.empty():
-                        try:
-                            input_queue.get_nowait()
-                        except:
-                            break
-                    print(f"[PID {pid}] Audio deactivated")
-                    sys.stdout.flush()
-                
-                elif command == "SEND_BOOL":
-                    key, value = args
-                    with bridge_lock:
-                        mmm_audio_bridge.update_bool_msg([key, value])
-                
-                elif command == "SEND_FLOAT":
-                    key, value = args
-                    with bridge_lock:
-                        mmm_audio_bridge.update_float_msg([key, value])
-                
-                elif command == "SEND_FLOATS":
-                    key, values = args
-                    key_vals = [key]
-                    key_vals.extend(values)
-                    with bridge_lock:
-                        mmm_audio_bridge.update_floats_msg(key_vals)
-                
-                elif command == "SEND_INT":
-                    key, value = args
-                    with bridge_lock:
-                        mmm_audio_bridge.update_int_msg([key, value])
-                
-                elif command == "SEND_INTS":
-                    key, values = args
-                    key_vals = [key]
-                    key_vals.extend([int(i) for i in values])
-                    with bridge_lock:
-                        mmm_audio_bridge.update_ints_msg(key_vals)
-                
-                elif command == "SEND_TRIG":
-                    key = args[0]
-                    with bridge_lock:
-                        mmm_audio_bridge.update_trig_msg([key])
-                
-                elif command == "SEND_STRING":
-                    key, value = args
-                    with bridge_lock:
-                        mmm_audio_bridge.update_string_msg([key, str(value)])
-                
-                elif command == "SEND_STRINGS":
-                    key, values = args
-                    key_vals = [key]
-                    key_vals.extend(values)
-                    with bridge_lock:
-                        mmm_audio_bridge.update_strings_msg(key_vals)
-                
-                elif command == "GET_SAMPLES":
-                    samples = args
-                    blocks = ceil(samples / blocksize)
-                    waveform = np.zeros(
-                        samples * actual_output_channels,
-                        dtype=np.float64
-                    ).reshape(samples, actual_output_channels)
-                    
-                    in_buf = np.zeros(
-                        (blocksize, actual_input_channels),
-                        dtype=np.float64
-                    )
-                    temp_out = np.zeros(
-                        (blocksize, actual_output_channels),
-                        dtype=np.float64
-                    )
-                    
-                    with bridge_lock:
-                        for i in range(blocks):
-                            mmm_audio_bridge.next(in_buf, temp_out)
-                            for j in range(temp_out.shape[0]):
-                                if i * blocksize + j < samples:
-                                    waveform[i * blocksize + j] = temp_out[j]
-                    
-                    response_queue.put(("SAMPLES", waveform))
-                
-                else:
+
+                try:
+                    command_index = int(command)
+                except (TypeError, ValueError):
                     print(f"[PID {pid}] Unknown command: {command}")
                     sys.stdout.flush()
+                    continue
+
+                if command_index < 0 or command_index >= len(command_handlers):
+                    print(f"[PID {pid}] Unknown command: {command}")
+                    sys.stdout.flush()
+                    continue
+
+                should_continue = command_handlers[command_index](args)
+                if not should_continue:
+                    break
             
             except Exception as e:
                 print(f"[PID {pid}] Command error: {e}")
