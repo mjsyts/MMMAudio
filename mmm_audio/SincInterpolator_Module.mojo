@@ -60,7 +60,7 @@ struct SincInterpolator[ripples: Int = 4, power: Int = 14](Movable, Copyable):
     @always_inline  
     fn spaced_sinc[num_chans: Int, bWrap: Bool = False, mask: Int = 0](self, data: Span[MFloat[num_chans]], index: Int, frac: Float64, spacing: Int) -> MFloat[num_chans]:
         """Read using spaced sinc interpolation. This is a helper function for read_sinc."""
-        sinc_mult = self.max_sinc_offset / spacing
+        sinc_mult = self.max_sinc_offset // spacing
         loop_count = Self.ripples * 2
         
         # Try to process in SIMD chunks if the loop is large enough
@@ -69,41 +69,35 @@ struct SincInterpolator[ripples: Int = 4, power: Int = 14](Movable, Copyable):
         data_len: Int = len(data)
         
         # Process SIMD chunks
-        for base_sp in range(0, loop_count, simd_width):
-            remaining: Int = min(Int(simd_width), loop_count - base_sp)
+        for sp in range(loop_count):
+            offset: Int = Int(sp - Self.ripples + 1)
             
             @parameter
-            for i in range(simd_width):
-                if i < remaining:
-                    sp = base_sp + i
-                    offset: Int = Int(sp - Self.ripples + 1)
-                    
-                    @parameter
-                    if bWrap:
-                        loc_point_unwrapped = index + offset * spacing
-                        
-                        @parameter
-                        if mask != 0:
-                            loc_point = loc_point_unwrapped & mask
-                        else:
-                            loc_point = loc_point_unwrapped % data_len
-                            if loc_point < 0:
-                                loc_point += data_len
+            if bWrap:
+                loc_point_unwrapped = index + offset * spacing
+                
+                @parameter
+                if mask != 0:
+                    loc_point = loc_point_unwrapped & mask
+                else:
+                    loc_point = loc_point_unwrapped % data_len
+                    if loc_point < 0:
+                        loc_point += data_len
 
-                        spaced_point = Int(Float64(loc_point) / Float64(spacing)) * spacing
-                        sinc_offset = loc_point - spaced_point
-                        
-                        sinc_value = self.interp_points(sp, Int(sinc_offset), Int(sinc_mult), frac)
-                        out += sinc_value * data[Int(spaced_point)]
-                    else:
-                        loc_point = index + offset * spacing
-                        
-                        if loc_point >= 0 and loc_point < data_len:
-                            spaced_point = Int(Float64(loc_point) / Float64(spacing)) * spacing
-                            sinc_offset = loc_point - spaced_point
-                            
-                            sinc_value = self.interp_points(sp, Int(sinc_offset), Int(sinc_mult), frac)
-                            out += sinc_value * data[Int(spaced_point)]
+                spaced_point = Int(Float64(loc_point) / Float64(spacing)) * spacing
+                sinc_offset = loc_point - spaced_point
+                
+                sinc_value = self.interp_points(sp, sinc_offset, sinc_mult, frac)
+                out += sinc_value * data[Int(spaced_point)]
+            else:
+                loc_point = index + offset * spacing
+                
+                if loc_point >= 0 and loc_point < data_len:
+                    spaced_point = Int(Float64(loc_point) / Float64(spacing)) * spacing
+                    sinc_offset = loc_point - spaced_point
+                    
+                    sinc_value = self.interp_points(sp, sinc_offset, sinc_mult, frac)
+                    out += sinc_value * data[Int(spaced_point)]
 
         return out
 
@@ -168,8 +162,8 @@ struct SincInterpolator[ripples: Int = 4, power: Int = 14](Movable, Copyable):
         # Create evenly spaced x values from -width*π to width*π
         var x_values = List[Float64]()
 
-        var x_min = -width * 3.141592653589793
-        var x_max = width * 3.141592653589793
+        var x_min = -width * pi
+        var x_max = width * pi
         var step = (x_max - x_min) / Float64(table_size - 1)
         
         for i in range(table_size):
