@@ -729,13 +729,13 @@ struct VAMoogLadder[num_chans: Int = 1, os_index: Int = 0](Representable, Movabl
         return lp4
 
     @always_inline
-    fn next(mut self, sig: SIMD[DType.float64, Self.num_chans], freq: SIMD[DType.float64, Self.num_chans] = 100, q_val: SIMD[DType.float64, Self.num_chans] = 0.5) -> SIMD[DType.float64, Self.num_chans]:
+    fn next(mut self, sig: SIMD[DType.float64, Self.num_chans], freq: SIMD[DType.float64, Self.num_chans] = 100, q: SIMD[DType.float64, Self.num_chans] = 0.5) -> SIMD[DType.float64, Self.num_chans]:
         """Process one sample through the Moog Ladder lowpass filter.
 
         Args:
             sig: The input signal to process.
             freq: The cutoff frequency of the lowpass filter.
-            q_val: The resonance of the filter.
+            q: The resonance of the filter.
 
         Returns:
             The next sample of the filtered output.
@@ -743,7 +743,7 @@ struct VAMoogLadder[num_chans: Int = 1, os_index: Int = 0](Representable, Movabl
         
         @parameter
         if Self.os_index == 0:
-            return self.lp4(sig, freq, q_val)
+            return self.lp4(sig, freq, q)
         else:
             comptime times_oversampling = 2 ** Self.os_index
 
@@ -752,7 +752,7 @@ struct VAMoogLadder[num_chans: Int = 1, os_index: Int = 0](Representable, Movabl
                 # upsample the input
                 sig2 = self.upsampler.next(sig, i)
 
-                var lp4 = self.lp4(sig2, freq, q_val)
+                var lp4 = self.lp4(sig2, freq, q)
                 @parameter
                 if Self.os_index == 0:
                     return lp4
