@@ -93,19 +93,21 @@ struct SVFModes:
     | bandpass      | 1     |
     | highpass      | 2     |
     | notch         | 3     |
-    | bell          | 4     |
-    | allpass       | 5     |
-    | lowshelf      | 6     |
-    | highshelf     | 7     |
+    | peak          | 4     |
+    | bell          | 5     |
+    | allpass       | 6     |
+    | lowshelf      | 7     |
+    | highshelf     | 8     |
     """
     comptime lowpass: Int64 = 0
     comptime bandpass: Int64 = 1
     comptime highpass: Int64 = 2
     comptime notch: Int64 = 3
-    comptime bell: Int64 = 4
-    comptime allpass: Int64 = 5
-    comptime lowshelf: Int64 = 6
-    comptime highshelf: Int64 = 7
+    comptime peak: Int64 = 4
+    comptime bell: Int64 = 5
+    comptime allpass: Int64 = 6
+    comptime lowshelf: Int64 = 7
+    comptime highshelf: Int64 = 8
 
 struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
     """A State Variable Filter struct.
@@ -203,6 +205,8 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
                 mc0[i], mc1[i], mc2[i] = 0.0, 1.0, 0.0
             elif filter_type == SVFModes.highpass:   
                 mc0[i], mc1[i], mc2[i] = 1.0, -k[i], -1.0
+            elif filter_type == SVFModes.peak:   
+                mc0[i], mc1[i], mc2[i] = 1.0, -k[i], -2.0
             elif filter_type == SVFModes.notch:   
                 mc0[i], mc1[i], mc2[i] = 1.0, -k[i], 0.0
             elif filter_type == SVFModes.allpass:   
@@ -303,6 +307,21 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
             The next sample of the filtered output.
         """
         return self.next[SVFModes.highpass](input, frequency, q)
+
+    @always_inline
+    fn peak(mut self, input: SIMD[DType.float64, self.num_chans], frequency: SIMD[DType.float64, self.num_chans], q: SIMD[DType.float64, self.num_chans]) -> SIMD[DType.float64, self.num_chans]:
+        """
+        Process input through a SVF peak filter. 
+
+        Args:
+            input: The input signal to process.
+            frequency: The center frequency of the peak filter.
+            q: The resonance of the filter.
+
+        Returns:
+            The next sample of the filtered output.
+        """
+        return self.next[SVFModes.peak](input, frequency, q)
 
     @always_inline
     fn notch(mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
