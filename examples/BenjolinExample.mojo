@@ -50,10 +50,10 @@ struct Benjolin(Movable, Copyable):
         self.pulse2 = Osc[interp=2,os_index=1](self.world)
         self.delays = List[Delay[1,3]](capacity=8)
         self.latches = List[Latch[]](capacity=8)
-        self.filters = List[SVF[]](capacity=9)
-        self.filter_outputs = List[Float64](capacity=9)
+        self.filters = List[SVF[]](capacity=8)
+        self.filter_outputs = List[Float64](capacity=8)
         self.sample_dur = 1.0 / self.world[].sample_rate
-        self.sh = List[Float64](capacity=9)
+        self.sh = List[Float64](capacity=8)
         self.dctraps = List[DCTrap[]](capacity=2)
 
         self.freq1 = 40
@@ -73,8 +73,6 @@ struct Benjolin(Movable, Copyable):
         for _ in range(8):
             self.delays.append(Delay[1,3](self.world, max_delay_time=0.1))
             self.latches.append(Latch())
-
-        for _ in range(9):
             self.filters.append(SVF(self.world))
             self.filter_outputs.append(0.0)
             self.sh.append(0.0)
@@ -130,11 +128,10 @@ struct Benjolin(Movable, Copyable):
         self.filter_outputs[1] = self.filters[1].hpf(pwm * self.gain,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q)
         self.filter_outputs[2] = self.filters[2].bpf(pwm * self.gain,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q)
         self.filter_outputs[3] = self.filters[3].lpf(pwm * self.gain,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q)
-        self.filter_outputs[4] = self.filters[4].peak(pwm * self.gain,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q)
+        self.filter_outputs[4] = self.filters[4].bell(pwm * self.gain,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q)
         self.filter_outputs[5] = self.filters[5].allpass(pwm * self.gain,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q)
-        self.filter_outputs[6] = self.filters[6].bell(pwm,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q,ampdb(self.gain))
-        self.filter_outputs[7] = self.filters[7].highshelf(pwm,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q,ampdb(self.gain))
-        self.filter_outputs[8] = self.filters[8].lowshelf(pwm,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q,ampdb(self.gain))
+        self.filter_outputs[6] = self.filters[6].highshelf(pwm,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q,ampdb(self.gain))
+        self.filter_outputs[7] = self.filters[7].lowshelf(pwm,(self.rungler*self.runglerFiltMul)+self.filterFreq,self.q,ampdb(self.gain))
         
         filter_output = select(self.filterType,self.filter_outputs) * dbamp(-12.0)
         filter_output = sanitize(filter_output)
