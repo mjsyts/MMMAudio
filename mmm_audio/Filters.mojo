@@ -87,27 +87,25 @@ struct SVFModes:
     This makes specifying a filter type more readable. For example,
     to specify a lowpass filter, use `SVFModes.lowpass`.
 
-    | Mode     | Value |
-    |----------|-------|
-    | lowpass  | 0     |
-    | bandpass | 1     |
-    | highpass | 2     |
-    | notch    | 3     |
-    | peak     | 4     |
-    | allpass  | 5     |
-    | bell     | 6     |
-    | lowshelf | 7     |
-    | highshelf| 8     |
+    | Mode          | Value |
+    |---------------|-------|
+    | lowpass       | 0     |
+    | bandpass      | 1     |
+    | highpass      | 2     |
+    | notch         | 3     |
+    | bell          | 4     |
+    | allpass       | 5     |
+    | lowshelf      | 6     |
+    | highshelf     | 7     |
     """
     comptime lowpass: Int64 = 0
     comptime bandpass: Int64 = 1
     comptime highpass: Int64 = 2
     comptime notch: Int64 = 3
-    comptime peak: Int64 = 4
+    comptime bell: Int64 = 4
     comptime allpass: Int64 = 5
-    comptime bell: Int64 = 6
-    comptime lowshelf: Int64 = 7
-    comptime highshelf: Int64 = 8
+    comptime lowshelf: Int64 = 6
+    comptime highshelf: Int64 = 7
 
 struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
     """A State Variable Filter struct.
@@ -139,7 +137,7 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
         return String("SVF")
 
     fn reset(mut self):
-        """Reset internal state of the filter."""
+        """Clears any leftover internal state so the filter starts clean after interruptions or discontinuities in the audio stream.""" 
         self.ic1eq = SIMD[DType.float64, Self.num_chans](0.0)
         self.ic2eq = SIMD[DType.float64, Self.num_chans](0.0)
 
@@ -228,7 +226,7 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
         """Process one sample through the SVF filter of the given type.
         
         Parameters:
-            filter_type: The type of filter to apply. See `SVFModes` struct for options.
+            filter_type: The type of SVF filter to apply. See `SVFModes` struct for options.
 
         Args:
             input: The next input value to process.
@@ -265,26 +263,28 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
     
     @always_inline
     fn lpf(mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
-        """SVF lowpass filter.
+        """
+        Process input through a SVF lowpass filter. Passes frequencies below the cutoff while attenuating frequencies above it.
         
         Args:
             input: The input signal to process.
             frequency: The cutoff frequency of the lowpass filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
 
         Returns:
-            The next SIMD sample of the filtered output.
+            The next sample of the filtered output.
         """
         return self.next[SVFModes.lowpass](input, frequency, q)
 
     @always_inline
     fn bpf(mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
-        """SVF bandpass filter.
+        """
+        Process input through a SVF bandpass filter. Passes a band of frequencies centered at the cutoff while attenuating frequencies above and below.
         
         Args:
             input: The input signal to process.
             frequency: The center frequency of the bandpass filter.
-            q: The resonance (Q factor) of the filter.
+            q: The bandwidth of the filter.
 
         Returns:
             The next sample of the filtered output.
@@ -293,12 +293,13 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
 
     @always_inline
     fn hpf(mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
-        """SVF highpass filter.
+        """
+        Process input through a SVF highpass filter. Passes frequencies above the cutoff while attenuating frequencies below it.
 
         Args:
             input: The input signal to process.
             frequency: The cutoff frequency of the highpass filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
 
         Returns:
             The next sample of the filtered output.
@@ -307,12 +308,13 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
 
     @always_inline
     fn notch(mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
-        """SVF notch filter.
-        
+        """
+        Process input through a SVF notch (band stop) filter. Attenuates a narrow band of frequencies centered at the cutoff while passing all others. 
+
         Args:
             input: The input signal to process.
             frequency: The center frequency of the notch filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
         
         Returns:
             The next sample of the filtered output.
@@ -320,27 +322,14 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
         return self.next[SVFModes.notch](input, frequency, q)
 
     @always_inline
-    fn peak(mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
-        """SVF peak filter.
-
-        Args:
-            input: The input signal to process.
-            frequency: The center frequency of the peak filter.
-            q: The resonance (Q factor) of the filter.
-
-        Returns:
-            The next sample of the filtered output.
-        """
-        return self.next[SVFModes.peak](input, frequency, q)
-
-    @always_inline
     fn allpass(mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
-        """SVF allpass filter.
+        """
+        Process input through a SVF allpass filter. Passes all frequencies at equal amplitude while shifting their phase relationship around the cutoff frequency.
         
         Args:
             input: The input signal to process.
             frequency: The center frequency of the allpass filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
 
         Returns:
             The next sample of the filtered output.
@@ -349,13 +338,14 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
 
     @always_inline
     fn bell(mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans], gain_db: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
-        """SVF bell filter (parametric EQ).
+        """
+        Process input through a SVF bell (peaking EQ) filter. Boosts or cuts a band of frequencies centered at the cutoff by a specified gain amount, leaving frequencies outside the band unaffected.
         
         Args:
             input: The input signal to process.
             frequency: The center frequency of the bell filter.
-            q: The resonance (Q factor) of the filter.
-            gain_db: The gain in decibels for the bell filter.
+            q: The resonance of the filter.
+            gain_db: The amount to boost/cut around the cutoff.
 
         Returns:
             The next sample of the filtered output.
@@ -364,13 +354,14 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
 
     @always_inline
     fn lowshelf(mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans], gain_db: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
-        """SVF low shelf filter.
+        """
+        Process input through a SVF lowshelf filter. Boosts or cuts all frequencies below the cutoff by a specified gain amount, leaving frequencies above unaffected.
 
         Args:
             input: The input signal to process.
             frequency: The cutoff frequency of the low shelf filter.
-            q: The resonance (Q factor) of the filter.
-            gain_db: The gain in decibels for the low shelf filter.
+            q: The resonance of the filter.
+            gain_db: The amount to boost/cut around the cutoff.
 
         Returns:
             The next sample of the filtered output.
@@ -379,13 +370,14 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
 
     @always_inline
     fn highshelf(mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans], gain_db: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
-        """SVF high shelf filter.
+        """
+        Process input through a SVF highshelf filter. Boosts or cuts all frequencies above the cutoff by a specified gain amount, leaving frequencies below unaffected.
 
         Args:
             input: The input signal to process.
             frequency: The cutoff frequency of the high shelf filter.
-            q: The resonance (Q factor) of the filter.
-            gain_db: The gain in decibels for the high shelf filter.
+            q: The resonance of the filter.
+            gain_db: The amount to boost/cut around the cutoff.
 
         Returns:
             The next sample of the filtered output.
@@ -1202,6 +1194,9 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
     ) -> SIMD[DType.float64, Self.num_chans]:
         """Process one sample through the biquad filter of the given type.
 
+        Parameters:
+            filter_type: The type of biquad filter to process through. See `BiquadModes` struct for options.
+
         Args:
             input: The next input value to process.
             frequency: The cutoff/center frequency of the filter.
@@ -1209,7 +1204,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
             gain_db: The gain in decibels for filters that use it.
 
         Returns:
-            The next SIMD sample of the filtered output.
+            The next sample of the filtered output.
         """
         var coefs = self._compute_coefficients[filter_type](frequency, q, gain_db)
         var b0 = coefs[0]
@@ -1278,7 +1273,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         Args:
             input: The input signal to process.
             frequency: The cutoff frequency in Hz.
-            q: The bandwidth and peak height of the filter.
+            q: The bandwidth of the filter.
 
         Returns:
             The next sample of the filtered output.
@@ -1318,7 +1313,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         Args:
             input: The input signal to process.
             frequency: The cutoff frequency in Hz.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
 
         Returns:
             The next sample of the filtered output.
@@ -1339,7 +1334,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         Args:
             input: The input signal to process.
             frequency: The cutoff frequency in Hz.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
             gain_db: The amount to boost/cut around the cutoff.
 
         Returns:
@@ -1361,7 +1356,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         Args:
             input: The input signal to process.
             frequency: The cutoff frequency in Hz.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
             gain_db: The amount to boost/cut around the cutoff.
 
         Returns:
@@ -1383,7 +1378,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         Args:
             input: The input signal to process.
             frequency: The cutoff frequency in Hz.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
             gain_db: The amount to boost/cut around the cutoff.
 
         Returns:
