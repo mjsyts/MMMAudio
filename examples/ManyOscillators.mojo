@@ -66,7 +66,7 @@ struct ManyOscillators(Copyable, Movable):
     var world: World
     var synths: List[StereoBeatingSines]  # Instances of the StereoBeatingSines synth
     var messenger: Messenger
-    var num_pairs: Int64
+    var num_pairs: Int
 
     fn __init__(out self, world: World):
         self.world = world

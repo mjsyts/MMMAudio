@@ -220,7 +220,7 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
 
     @doc_private
     @always_inline
-    fn next[filter_type: Int64](mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans], gain_db: SIMD[DType.float64, Self.num_chans] = 0.0) -> SIMD[DType.float64, Self.num_chans]:
+    fn next[filter_type: Int](mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans], gain_db: SIMD[DType.float64, Self.num_chans] = 0.0) -> SIMD[DType.float64, Self.num_chans]:
         """Process one sample through the SVF filter of the given type.
         
         Parameters:
@@ -783,20 +783,6 @@ struct Reson[num_chans: Int = 1](Movable, Copyable):
         self.coeffs = [MFloat[Self.num_chans](0.0) for _ in range(5)]
         self.sample_rate = world[].sample_rate
 
-    @doc_private
-    @always_inline
-    fn tf2s(mut self, b2: SIMD[DType.float64, Self.num_chans], b1: SIMD[DType.float64, Self.num_chans], b0: SIMD[DType.float64, self.num_chans], a1: SIMD[DType.float64, Self.num_chans], a0: SIMD[DType.float64, Self.num_chans], w1: SIMD[DType.float64, Self.num_chans], sample_rate: Float64) -> Tuple[SIMD[DType.float64, Self.num_chans], SIMD[DType.float64, Self.num_chans], SIMD[DType.float64, Self.num_chans], SIMD[DType.float64, Self.num_chans], SIMD[DType.float64, Self.num_chans]]:
-        var c   = 1/tan(w1*0.5/sample_rate) # bilinear-transform scale-factor
-        var csq = c*c
-        var d   = a0 + a1 * c + csq
-        var b0d = (b0 + b1 * c + b2 * csq)/d
-        var b1d = 2 * (b0 - b2 * csq)/d
-        var b2d = (b0 - b1 * c + b2 * csq)/d
-        var a1d = 2 * (a0 - csq)/d
-        var a2d = (a0 - a1*c + csq)/d
-
-        return (b0d, b1d, b2d, a1d, a2d)
-
     @always_inline
     fn lpf(mut self, input: MFloat[self.num_chans], freq: MFloat[self.num_chans], q: MFloat[self.num_chans], gain: MFloat[self.num_chans]) -> MFloat[self.num_chans]:
         """Process input through a resonant lowpass filter.
@@ -817,7 +803,7 @@ struct Reson[num_chans: Int = 1](Movable, Copyable):
         var b1 = 0.0
         var b0 = clip(gain, 0.0, 1.0)
 
-        b0d, b1d, b2d, a1d, a2d = self.tf2s(b2, b1, b0, a1, a0, wc, self.sample_rate)
+        b0d, b1d, b2d, a1d, a2d = tf2s[Self.num_chans](b2, b1, b0, a1, a0, wc, self.sample_rate)
 
         return self.tf2.next(input, b0d, b1d, b2d, a1d, a2d)
 
@@ -857,7 +843,7 @@ struct Reson[num_chans: Int = 1](Movable, Copyable):
         var b1 = clip(gain, 0.0, 1.0)
         var b0 = 0.0
 
-        b0d, b1d, b2d, a1d, a2d = self.tf2s(b2, b1, b0, a1, a0, wc, self.sample_rate)
+        b0d, b1d, b2d, a1d, a2d = tf2s[Self.num_chans](b2, b1, b0, a1, a0, wc, self.sample_rate)
 
         return self.tf2.next(input, b0d, b1d, b2d, a1d, a2d)
 

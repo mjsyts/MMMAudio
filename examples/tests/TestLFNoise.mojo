@@ -7,7 +7,7 @@ struct TestLFNoise[num_osc: Int = 4](Movable, Copyable):
     var world: World
     var noise: LFNoise[Self.num_osc, 1]
     var synth: Osc[Self.num_osc]
-    var interp: Int64
+    var interp: Int
 
     fn __init__(out self, world: World):
         self.world = world

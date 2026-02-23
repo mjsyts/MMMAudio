@@ -8,7 +8,7 @@ comptime hop_size = window_size // 2
 struct FFTLowPass[window_size: Int](BufferedProcessable):
     var world: World
     var m: Messenger
-    var bin: Int64
+    var bin: Int
     var fft: RealFFT[Self.window_size]
     # var complex: List[ComplexFloat64]
     var mags: List[Float64]

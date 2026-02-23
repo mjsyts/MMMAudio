@@ -11,7 +11,7 @@ struct PitchShiftExample(Representable, Movable, Copyable):
     var grain_dur: Float64
     var pitch_dispersion: Float64
     var time_dispersion: Float64
-    var in_chan: Int64
+    var in_chan: Int
     var which_input: Float64
     var noise: WhiteNoise[]
      

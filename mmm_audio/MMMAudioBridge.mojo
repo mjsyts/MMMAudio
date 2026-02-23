@@ -18,10 +18,10 @@ struct MMMAudioBridge(Representable, Movable):
     fn py_init(out self: MMMAudioBridge, args: PythonObject, kwargs: PythonObject) raises:
 
         var sample_rate = Float64(py=args[0])
-        var block_size: Int64 = Int64(py=args[1])
+        var block_size: Int = Int(py=args[1])
 
-        var num_out_chans: Int64 = 2
-        var num_in_chans: Int64 = 2
+        var num_out_chans: Int = 2
+        var num_in_chans: Int = 2
 
         # right now if you try to read args[3], shit gets really weird
 
@@ -30,7 +30,7 @@ struct MMMAudioBridge(Representable, Movable):
     fn __repr__(self) -> String:
         return "MMMAudioBridge(world={self.world})"
 
-    fn __init__(out self, sample_rate: Float64 = 44100.0, block_size: Int64 = 512, num_in_chans: Int64 = 12, num_out_chans: Int64 = 12):
+    fn __init__(out self, sample_rate: Float64 = 44100.0, block_size: Int = 512, num_in_chans: Int = 12, num_out_chans: Int = 12):
         """Initialize the audio engine with sample rate, block size, and number of channels."""
 
         self.world = alloc[MMMWorld](1) 
@@ -40,8 +40,8 @@ struct MMMAudioBridge(Representable, Movable):
 
     @staticmethod
     fn set_channel_count(py_selfA: PythonObject, args: PythonObject) raises -> PythonObject:
-        var num_in_chans = Int64(py=args[0])
-        var num_out_chans = Int64(py=args[1])
+        var num_in_chans = Int(py=args[0])
+        var num_out_chans = Int(py=args[1])
         print("set_channel_count:", num_in_chans, num_out_chans)
         var py_self = py_selfA.downcast_value_ptr[Self]()
         py_self[0].world[].set_channel_count(num_in_chans, num_out_chans)
@@ -103,7 +103,7 @@ struct MMMAudioBridge(Representable, Movable):
     @staticmethod
     fn update_int_msg(py_selfA: PythonObject, key_vals: PythonObject) raises -> PythonObject:
         var py_self = py_selfA.downcast_value_ptr[Self]()
-        py_self[0].world[].messengerManager.update_int_msg(String(key_vals[0]), Int64(py=key_vals[1]))
+        py_self[0].world[].messengerManager.update_int_msg(String(key_vals[0]), Int(py=key_vals[1]))
 
         return PythonObject(None)  # Return a PythonObject wrapping None
 
@@ -111,7 +111,7 @@ struct MMMAudioBridge(Representable, Movable):
     fn update_ints_msg(py_selfA: PythonObject, key_vals: PythonObject) raises -> PythonObject:
         var py_self = py_selfA.downcast_value_ptr[Self]()
         key = String(key_vals[0])
-        values = [Int64(py=v) for v in key_vals[1:]]
+        values = [Int(py=v) for v in key_vals[1:]]
 
         py_self[0].world[].messengerManager.update_ints_msg(key, values^)
 

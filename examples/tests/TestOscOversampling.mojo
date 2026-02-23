@@ -30,11 +30,11 @@ struct TestOscOversampling(Movable, Copyable):
         freq = self.lag.next(linexp(self.world[].mouse_x, 0.0, 1.0, 20.0, 20000.0))
 
         sample = select(self.which, [
-            self.osc.next(freq, osc_type=OscType.bandlimited_saw)[0],
-            self.osc1.next(freq, osc_type=OscType.bandlimited_saw)[0],
-            self.osc2.next(freq, osc_type=OscType.bandlimited_saw)[0],
-            self.osc3.next(freq, osc_type=OscType.bandlimited_saw)[0],
-            self.osc4.next(freq, osc_type=OscType.bandlimited_saw)[0],
+            self.osc.next(freq, osc_type=OscType.saw)[0],
+            self.osc1.next(freq, osc_type=OscType.saw)[0],
+            self.osc2.next(freq, osc_type=OscType.saw)[0],
+            self.osc3.next(freq, osc_type=OscType.saw)[0],
+            self.osc4.next(freq, osc_type=OscType.saw)[0],
         ])
 
         return sample * 0.2

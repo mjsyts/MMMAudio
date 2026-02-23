@@ -16,7 +16,7 @@ struct TestUpsample(Movable, Copyable):
 
     fn next(mut self) -> SIMD[DType.float64, 2]:
 
-        sample = self.osc.next(self.world[].mouse_y * 200.0 + 20.0, osc_type = OscType.bandlimited_triangle)
+        sample = self.osc.next(self.world[].mouse_y * 200.0 + 20.0, osc_type = OscType.triangle)
         sample2 = 0.0
         for i in range(times_oversample):
             sample2 = self.upsampler.next(sample, i)

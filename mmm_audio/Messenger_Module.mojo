@@ -215,13 +215,13 @@ struct Messenger(Copyable, Movable):
                 print("Error occurred while updating float SIMD message. Error: ", error)
         return False
 
-    # update Int64
-    fn update(mut self, mut param: Int64, name: String):
-        """Update a Int64 variable with a value sent from Python.
+    # update Int
+    fn update(mut self, mut param: Int, name: String):
+        """Update a Int variable with a value sent from Python.
 
         Args:
-            param: A `Int64` variable to be updated.
-            name: A `String` to identify the Int64 sent from Python.
+            param: A `Int` variable to be updated.
+            name: A `String` to identify the Int sent from Python.
         """
         if self.world[].top_of_block:
             try:
@@ -231,13 +231,13 @@ struct Messenger(Copyable, Movable):
             except error:
                 print("Error occurred while updating int message. Error: ", error)
 
-    # notify_update Int64
-    fn notify_update(mut self, mut param: Int64, name: String) -> Bool:
-        """Notify and update a Int64 variable with a value sent from Python.
+    # notify_update Int
+    fn notify_update(mut self, mut param: Int, name: String) -> Bool:
+        """Notify and update a Int variable with a value sent from Python.
 
         Args:
-            param: A `Int64` variable to be updated.
-            name: A `String` to identify the Int64 sent from Python.
+            param: A `Int` variable to be updated.
+            name: A `String` to identify the Int sent from Python.
 
         Returns:
             A `Bool` indicating whether the parameter was updated.
@@ -252,13 +252,13 @@ struct Messenger(Copyable, Movable):
                 print("Error occurred while updating int message. Error: ", error)
         return False
 
-    # update List[Int64]
-    fn update(mut self, mut param: List[Int64], ref name: String):
-        """Update a List[Int64] variable with a value sent from Python.
+    # update List[Int]
+    fn update(mut self, mut param: List[Int], ref name: String):
+        """Update a List[Int] variable with a value sent from Python.
 
         Args:
-            param: A `List[Int64]` variable to be updated. The List will be resized to match the incoming data.
-            name: A `String` to identify the List[Int64] sent from Python.
+            param: A `List[Int]` variable to be updated. The List will be resized to match the incoming data.
+            name: A `String` to identify the List[Int] sent from Python.
         """
         if self.world[].top_of_block:
             try:
@@ -268,13 +268,13 @@ struct Messenger(Copyable, Movable):
             except error:
                 print("Error occurred while updating int list message. Error: ", error)
 
-    # notify_update List[Int64]
-    fn notify_update(mut self, mut param: List[Int64], ref name: String) -> Bool:
-        """Notify and update a List[Int64] variable with a value sent from Python.
+    # notify_update List[Int]
+    fn notify_update(mut self, mut param: List[Int], ref name: String) -> Bool:
+        """Notify and update a List[Int] variable with a value sent from Python.
 
         Args:
-            param: A `List[Int64]` variable to be updated. The List will be resized to match the incoming data.
-            name: A `String` to identify the List[Int64] sent from Python.
+            param: A `List[Int]` variable to be updated. The List will be resized to match the incoming data.
+            name: A `String` to identify the List[Int] sent from Python.
 
         Returns:
             A `Bool` indicating whether the parameter was updated.
@@ -419,18 +419,18 @@ struct FloatsMessage(Movable, Copyable):
 @doc_private
 struct IntMessage(Movable, Copyable):
     var retrieved: Bool
-    var value: Int64
+    var value: Int
 
-    fn __init__(out self, value: Int64):
+    fn __init__(out self, value: Int):
         self.retrieved = False
         self.value = value
 
 @doc_private
 struct IntsMessage(Movable, Copyable):
     var retrieved: Bool
-    var value: List[Int64]
+    var value: List[Int]
 
-    fn __init__(out self, value: List[Int64]):
+    fn __init__(out self, value: List[Int]):
         self.retrieved = False
         self.value = value.copy()
 
@@ -478,10 +478,10 @@ struct MessengerManager(Movable, Copyable):
     var floats_msg_pool: Dict[String, List[Float64]]
     var floats_msgs: Dict[String, FloatsMessage]
     
-    var int_msg_pool: Dict[String, Int64]
+    var int_msg_pool: Dict[String, Int]
     var int_msgs: Dict[String, IntMessage]
 
-    var ints_msg_pool: Dict[String, List[Int64]]
+    var ints_msg_pool: Dict[String, List[Int]]
     var ints_msgs: Dict[String, IntsMessage]
 
     var string_msg_pool: Dict[String, String]
@@ -513,10 +513,10 @@ struct MessengerManager(Movable, Copyable):
         self.floats_msg_pool = Dict[String, List[Float64]]()
         self.floats_msgs = Dict[String, FloatsMessage]()
 
-        self.int_msg_pool = Dict[String, Int64]()
+        self.int_msg_pool = Dict[String, Int]()
         self.int_msgs = Dict[String, IntMessage]()
         
-        self.ints_msg_pool = Dict[String, List[Int64]]()
+        self.ints_msg_pool = Dict[String, List[Int]]()
         self.ints_msgs = Dict[String, IntsMessage]()
 
         self.string_msg_pool = Dict[String, String]()
@@ -551,11 +551,11 @@ struct MessengerManager(Movable, Copyable):
 
     ##### Int #####
     @always_inline
-    fn update_int_msg(mut self, key: String, value: Int64):
+    fn update_int_msg(mut self, key: String, value: Int):
         self.int_msg_pool[key] = value
     
     @always_inline
-    fn update_ints_msg(mut self, key: String, var value: List[Int64]):
+    fn update_ints_msg(mut self, key: String, var value: List[Int]):
         self.ints_msg_pool[key] = value^
 
     ##### String #####
@@ -653,14 +653,14 @@ struct MessengerManager(Movable, Copyable):
         return None
 
     @always_inline
-    fn get_int(mut self, ref key: String) raises -> Optional[Int64]:
+    fn get_int(mut self, ref key: String) raises -> Optional[Int]:
         if key in self.int_msgs:
             self.int_msgs[key].retrieved = True
             return self.int_msgs[key].value
         return None
 
     @always_inline
-    fn get_ints(mut self, ref key: String) raises -> Optional[List[Int64]]:
+    fn get_ints(mut self, ref key: String) raises -> Optional[List[Int]]:
         if key in self.ints_msgs:
             self.ints_msgs[key].retrieved = True
             return self.ints_msgs[key].value.copy()

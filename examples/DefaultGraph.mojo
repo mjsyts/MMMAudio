@@ -23,7 +23,7 @@ struct Default_Synth(Representable, Movable, Copyable):
         self.messenger.update(self.freq,"freq")
         self.messenger.update(self.pan,"pan")
 
-        osc = self.osc.next(self.freq, osc_type=OscType.bandlimited_saw) 
+        osc = self.osc.next(self.freq, osc_type=OscType.saw) 
         osc = self.filt.next[filter_type=SVFModes.lowpass](osc, 2000.0, 1.0)
         osc2 = pan2(osc, self.pan)
 

@@ -4,7 +4,7 @@ from collections import Set
 from mmm_audio import *
 
 comptime MFloat[N: Int = 1] = SIMD[DType.float64, N]
-comptime MInt[N: Int = 1] = SIMD[DType.int64, N]
+comptime MInt[N: Int = 1] = SIMD[DType.int, N]
 comptime MBool[N: Int = 1] = SIMD[DType.bool, N]
 comptime World = UnsafePointer[mut=True, MMMWorld, MutExternalOrigin]
 
@@ -14,10 +14,10 @@ struct MMMWorld(Movable, Copyable):
     In pretty much all usage, don't edit this struct.
     """
     var sample_rate: Float64
-    var block_size: Int64
+    var block_size: Int
     var osc_buffers: OscBuffers
-    var num_in_chans: Int64
-    var num_out_chans: Int64
+    var num_in_chans: Int
+    var num_out_chans: Int
 
     var sound_in: List[Float64]
 
@@ -28,7 +28,7 @@ struct MMMWorld(Movable, Copyable):
     var mouse_x: Float64
     var mouse_y: Float64
 
-    var block_state: Int64
+    var block_state: Int
     var top_of_block: Bool
     
     # windows
@@ -38,14 +38,13 @@ struct MMMWorld(Movable, Copyable):
 
     var messengerManager: MessengerManager
 
-    # var pointer_to_self: World
     var last_print_time: Float64
-    var print_flag: Int64
-    var last_print_flag: Int64
+    var print_flag: Int
+    var last_print_flag: Int
 
     var print_counter: UInt16
 
-    fn __init__(out self, sample_rate: Float64 = 48000.0, block_size: Int64 = 64, num_in_chans: Int64 = 2, num_out_chans: Int64 = 2):
+    fn __init__(out self, sample_rate: Float64 = 48000.0, block_size: Int = 64, num_in_chans: Int = 2, num_out_chans: Int = 2):
         """Initializes the MMMWorld struct.
 
         Args:
@@ -90,7 +89,7 @@ struct MMMWorld(Movable, Copyable):
 
         print("MMMWorld initialized with sample rate:", self.sample_rate, "and block size:", self.block_size)
 
-    fn set_channel_count(mut self, num_in_chans: Int64, num_out_chans: Int64):
+    fn set_channel_count(mut self, num_in_chans: Int, num_out_chans: Int):
         """Sets the number of input and output channels.
 
         Args:
@@ -192,14 +191,10 @@ struct OscType:
     | OscType.triangle             | 1     |
     | OscType.saw                  | 2     |
     | OscType.square               | 3     |
-    | OscType.bandlimited_triangle | 4     |
-    | OscType.bandlimited_saw      | 5     |
-    | OscType.bandlimited_square.  | 6     |
+    | OscType.basic_waveforms      | 4     |
     """
     comptime sine: Int = 0
     comptime triangle: Int = 1
     comptime saw: Int = 2
     comptime square: Int = 3
-    comptime bandlimited_triangle: Int = 4
-    comptime bandlimited_saw: Int = 5
-    comptime bandlimited_square: Int = 6
+    comptime basic_waveforms: Int = 4

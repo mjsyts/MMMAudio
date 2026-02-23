@@ -9,7 +9,7 @@ struct Oversampling[num_chans: Int = 1, times_oversampling: Int = 0](Representab
     """
 
     var buffer: InlineArray[SIMD[DType.float64, Self.num_chans], Self.times_oversampling]  # Buffer for oversampled values
-    var counter: Int64
+    var counter: Int
     var lpf: OS_LPF4[Self.num_chans]
 
     fn __init__(out self, world: World):

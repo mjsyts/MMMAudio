@@ -1,26 +1,12 @@
 """Example of a wavetable oscillator using custom wavetables loaded from files.
 
-You can load your own wavetable files by sending a string message to the "load_file" parameter with the full path to the wavetable file.
-
-MMM_Audio can load commercial .wav files, designed for Vital or Serum, as wavetables. The wavetable should be a single channel audio file made up of one or more cycles of a waveform, each a power of 2 in length. The wavetable will be looped to create the oscillator waveform.
-
-Also demonstrates how to use the PVoiceAllocator class to manage multiple voices for polyphonic MIDI input.
+This example uses SIMDBuffer instead of Buffer to load the wavetable. This allows for more efficient processing for wavetables with a small number of channels (2-8), where the number of channels is known ahead of time, but it should not be used with wavetables that have a large number of waveforms.
 """
 
 from mmm_python import *
-mmm_audio = MMMAudio(128, graph_name="WavetableOsc", package_name="examples")
+mmm_audio = MMMAudio(128, graph_name="WavetableOscSIMD", package_name="examples")
 mmm_audio.start_audio() 
 
-# load a different wavetable if you like - these are just example paths - change to your own files
-# if the number of instances of the wave found in the wavetable file is different than the default 256, you may need to change the "wavetables_per_channel" parameter
-mmm_audio.send_int("wavetables_per_channel", 128) # set this to the number of waveforms in your wavetable file
-
-mmm_audio.send_string("load_file", "'/Users/ted/dev/BVKER - Custom Wavetables/Growl/Growl 10.wav'")
-mmm_audio.send_string("load_file", "'/Users/ted/dev/BVKER - Custom Wavetables/Growl/Growl 11.wav'")
-mmm_audio.send_string("load_file", "'/Users/ted/dev/BVKER - Custom Wavetables/Growl/Growl 12.wav'")
-mmm_audio.send_string("load_file", "'/Users/ted/dev/BVKER - Custom Wavetables/Growl/Growl 13.wav'")
-mmm_audio.send_string("load_file", "'/Users/ted/dev/BVKER - Custom Wavetables/Growl/Growl 14.wav'")
-mmm_audio.send_string("load_file", "'/Users/ted/dev/BVKER - Custom Wavetables/Growl/Growl 15.wav'")
 
 def midi_func():
     import threading

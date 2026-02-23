@@ -26,6 +26,7 @@ from .Windows_Module import *
 from .functions import *
 from .FFT_Processes import *
 from .ComplexFFTProcess_Module import *
+from .windows_waveforms import *
 
 from random import random_float64
 from math import *
