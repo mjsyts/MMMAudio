@@ -220,7 +220,7 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
 
     @doc_private
     @always_inline
-    fn next[filter_type: Int](mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans], gain_db: SIMD[DType.float64, Self.num_chans] = 0.0) -> SIMD[DType.float64, Self.num_chans]:
+    fn next[filter_type: Int64](mut self, input: SIMD[DType.float64, Self.num_chans], frequency: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans], gain_db: SIMD[DType.float64, Self.num_chans] = 0.0) -> SIMD[DType.float64, Self.num_chans]:
         """Process one sample through the SVF filter of the given type.
         
         Parameters:
