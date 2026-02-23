@@ -205,8 +205,6 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
                 mc0[i], mc1[i], mc2[i] = 1.0, -k[i], -1.0
             elif filter_type == SVFModes.notch:   
                 mc0[i], mc1[i], mc2[i] = 1.0, -k[i], 0.0
-            elif filter_type == SVFModes.peak:   
-                mc0[i], mc1[i], mc2[i] = 1.0, -k[i], -2.0
             elif filter_type == SVFModes.allpass:   
                 mc0[i], mc1[i], mc2[i] = 1.0, -2.0*k[i], 0.0
             elif filter_type == SVFModes.bell:  
