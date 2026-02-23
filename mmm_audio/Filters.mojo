@@ -151,7 +151,7 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
 
         Args:
             frequency: The cutoff/center frequency of the filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
             gain_db: The gain in decibels for filters that use it.
 
         Returns:
@@ -229,7 +229,7 @@ struct SVF[num_chans: Int = 1](Representable, Movable, Copyable):
         Args:
             input: The next input value to process.
             frequency: The cutoff/center frequency of the filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
             gain_db: The gain in decibels for filters that use it.
 
         Returns:
@@ -676,13 +676,13 @@ struct VAMoogLadder[num_chans: Int = 1, os_index: Int = 0](Representable, Movabl
 
     @doc_private
     @always_inline
-    fn lp4(mut self, sig: SIMD[DType.float64, Self.num_chans], freq: SIMD[DType.float64, Self.num_chans], q_val: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
+    fn lp4(mut self, sig: SIMD[DType.float64, Self.num_chans], freq: SIMD[DType.float64, Self.num_chans], q: SIMD[DType.float64, Self.num_chans]) -> SIMD[DType.float64, Self.num_chans]:
         """Process one sample through the 4-pole Moog Ladder lowpass filter.
 
         Args:
             sig: The input signal to process.
             freq: The cutoff frequency of the lowpass filter.
-            q_val: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
         
         Returns:
             The next sample of the filtered output.
@@ -690,7 +690,7 @@ struct VAMoogLadder[num_chans: Int = 1, os_index: Int = 0](Representable, Movabl
         var cf = clip(freq, 0.0, self.nyquist * 0.6)
             
         # k is the feedback coefficient of the entire circuit
-        var k = 4.0 * q_val
+        var k = 4.0 * q
         
         var omegaWarp = tan(pi * cf * self.step_val)
         var g = omegaWarp / (1.0 + omegaWarp)
@@ -735,7 +735,7 @@ struct VAMoogLadder[num_chans: Int = 1, os_index: Int = 0](Representable, Movabl
         Args:
             sig: The input signal to process.
             freq: The cutoff frequency of the lowpass filter.
-            q_val: The resonance (Q factor) of the filter.
+            q_val: The resonance of the filter.
 
         Returns:
             The next sample of the filtered output.
@@ -790,7 +790,7 @@ struct Reson[num_chans: Int = 1](Movable, Copyable):
         Args:
             input: The input signal to process.
             freq: The cutoff frequency of the lowpass filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
             gain: The output gain (clipped to 0.0-1.0 range).
 
         Returns:
@@ -814,7 +814,7 @@ struct Reson[num_chans: Int = 1](Movable, Copyable):
         Args:
             input: The input signal to process.
             freq: The cutoff frequency of the highpass filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
             gain: The output gain (clipped to 0.0-1.0 range).
 
         Returns:
@@ -830,7 +830,7 @@ struct Reson[num_chans: Int = 1](Movable, Copyable):
         Args:
             input: The input signal to process.
             freq: The center frequency of the bandpass filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
             gain: The output gain (clipped to 0.0-1.0 range).
 
         Returns:
@@ -1066,7 +1066,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
 
         Args:
             frequency: The cutoff/center frequency of the filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
             gain_db: The gain in decibels for filters that use it.
 
         Returns:
@@ -1184,7 +1184,7 @@ struct Biquad[num_chans: Int = 1](Representable, Movable, Copyable):
         Args:
             input: The next input value to process.
             frequency: The cutoff/center frequency of the filter.
-            q: The resonance (Q factor) of the filter.
+            q: The resonance of the filter.
             gain_db: The gain in decibels for filters that use it.
 
         Returns:
