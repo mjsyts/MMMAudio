@@ -1,4 +1,4 @@
-from .MMMWorld_Module import *
+from MMMWorld_Module import *
 from math import *
 
 struct Euler[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
@@ -9,7 +9,7 @@ struct Euler[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
         num_chans: Number of SIMD channels.
     """
 
-    var state: List[SIMD[DType.float64, num_chans]]
+    var state: List[SIMD[DType.float64, Self.num_chans]]
     var dt: Float64
     var world: UnsafePointer[MMMWorld]
 
@@ -17,11 +17,11 @@ struct Euler[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
         """Initialize the Euler struct."""
         self.world = world
         self.dt = 1.0 / world[].sample_rate
-        self.state = List[SIMD[DType.float64, num_chans]]()
+        self.state = List[SIMD[DType.float64, Self.num_chans]]()
         for _ in range(num_dims):
-            self.state.append(SIMD[DType.float64, num_chans](0.0))
+            self.state.append(SIMD[DType.float64, Self.num_chans](0.0))
         
-    fn step(mut self, derivatives: List[SIMD[DType.float64, num_chans]]):
+    fn step(mut self, derivatives: List[SIMD[DType.float64, Self.num_chans]]):
         """Perform a single Euler integration step.
 
         Args:
@@ -38,26 +38,26 @@ struct RK2[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
         num_chans: Number of SIMD channels.
     """
 
-    var state: List[SIMD[DType.float64, num_chans]]
+    var state: List[SIMD[DType.float64, Self.num_chans]]
     var dt: Float64
     var world: UnsafePointer[MMMWorld]
 
     fn __init__(out self, world: UnsafePointer[MMMWorld]):
         """Initialize the RK2 struct."""
         self.world = world
-        self.state = List[SIMD[DType.float64, num_chans]]()
+        self.state = List[SIMD[DType.float64, Self.num_chans]]()
         self.dt = 1.0 / world[].sample_rate
         for _ in range(num_dims):
-            self.state.append(SIMD[DType.float64, num_chans](0.0))
+            self.state.append(SIMD[DType.float64, Self.num_chans](0.0))
 
-    fn step(mut self, fn_deriv: fn(List[SIMD[DType.float64, num_chans]]) -> List[SIMD[DType.float64, num_chans]]):
+    fn step(mut self, fn_deriv: fn(List[SIMD[DType.float64, Self.num_chans]]) -> List[SIMD[DType.float64, Self.num_chans]]):
         """Perform a single RK2 integration step.
 
         Args:
             fn_deriv: Function that computes derivatives given the current state.
         """
         var k1 = fn_deriv(self.state)
-        var temp_state = List[SIMD[DType.float64, num_chans]]()
+        var temp_state = List[SIMD[DType.float64, Self.num_chans]]()
         for i in range(num_dims):
             temp_state.append(self.state[i] + k1[i] * (self.dt / 2.0))
         
@@ -72,7 +72,7 @@ struct RK4[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
         num_dims: Number of dimensions (state variables), e.g. 2 for position and velocity.
         num_chans: Number of SIMD channels.
     """
-    var state: List[SIMD[DType.float64, num_chans]]
+    var state: List[SIMD[DType.float64, Self.num_chans]]
     var dt: Float64
     var world: UnsafePointer[MMMWorld]
 
@@ -80,17 +80,17 @@ struct RK4[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
         """Initialize the RK4 struct."""
         self.world = world
         self.dt = 1.0 / world[].sample_rate
-        self.state = List[SIMD[DType.float64, num_chans]]()
+        self.state = List[SIMD[DType.float64, Self.num_chans]]()
         for _ in range(num_dims):
-            self.state.append(SIMD[DType.float64, num_chans](0.0))
+            self.state.append(SIMD[DType.float64, Self.num_chans](0.0))
 
-    fn step(mut self, fn_deriv: fn(List[SIMD[DType.float64, num_chans]]) -> List[SIMD[DType.float64, num_chans]]):
+    fn step(mut self, fn_deriv: fn(List[SIMD[DType.float64, Self.num_chans]]) -> List[SIMD[DType.float64, Self.num_chans]]):
         """Perform a single RK4 integration step.
         Args:
             fn_deriv: Function that computes derivatives given the current state.
         """
         var k1 = fn_deriv(self.state)
-        var temp_state = List[SIMD[DType.float64, num_chans]]()
+        var temp_state = List[SIMD[DType.float64, Self.num_chans]]()
         for i in range(num_dims):
             temp_state.append(self.state[i] + k1[i] * (self.dt / 2.0))
         
