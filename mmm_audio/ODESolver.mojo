@@ -1,4 +1,4 @@
-from MMMWorld_Module import *
+from mmm_audio import *
 from math import *
 
 struct Euler[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
