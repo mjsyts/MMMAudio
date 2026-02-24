@@ -11,9 +11,9 @@ struct Euler[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
 
     var state: List[SIMD[DType.float64, Self.num_chans]]
     var dt: Float64
-    var world: UnsafePointer[MMMWorld]
+    var world: World
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         """Initialize the Euler struct."""
         self.world = world
         self.dt = 1.0 / world[].sample_rate
@@ -40,9 +40,9 @@ struct RK2[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
 
     var state: List[SIMD[DType.float64, Self.num_chans]]
     var dt: Float64
-    var world: UnsafePointer[MMMWorld]
+    var world: World
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         """Initialize the RK2 struct."""
         self.world = world
         self.state = List[SIMD[DType.float64, Self.num_chans]]()
@@ -74,9 +74,9 @@ struct RK4[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
     """
     var state: List[SIMD[DType.float64, Self.num_chans]]
     var dt: Float64
-    var world: UnsafePointer[MMMWorld]
+    var world: World
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         """Initialize the RK4 struct."""
         self.world = world
         self.dt = 1.0 / world[].sample_rate
