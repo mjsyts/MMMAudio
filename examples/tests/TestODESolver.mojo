@@ -5,12 +5,12 @@ from mmm_audio import *
 # dx/dt = v,  dv/dt = -omega^2 * x
 
 struct TestODEOscillator(Representable, Movable, Copyable):
-    var world: UnsafePointer[MMMWorld]
+    var world: World
     var solver: RK4[2, 1]
     var frequency: Float64
     var m: Messenger
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
         self.solver = RK4[2, 1](world)
         self.frequency = 440.0
@@ -43,11 +43,11 @@ struct TestODEOscillator(Representable, Movable, Copyable):
 # Mouse X controls cutoff: left channel sweeps 20Hz->20kHz, right sweeps inverse.
 
 struct TestODEFilter[N: Int = 2](Representable, Movable, Copyable):
-    var world: UnsafePointer[MMMWorld]
+    var world: World
     var noise: WhiteNoise[N]
     var euler: Euler[1, N]
 
-    fn __init__(out self, world: UnsafePointer[MMMWorld]):
+    fn __init__(out self, world: World):
         self.world = world
         self.noise = WhiteNoise[N]()
         self.euler = Euler[1, N](world)
