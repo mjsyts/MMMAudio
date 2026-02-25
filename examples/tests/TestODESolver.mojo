@@ -34,7 +34,7 @@ struct TestODEOscillator(Representable, Movable, Copyable):
             derivs[1] = -omega_sq * state[0]
             return derivs^
 
-        self.solver.step(derivatives)
+        self.solver.step[derivatives]()
         var output = self.solver.state[0]
         return SIMD[DType.float64, 2](output, output) * 0.5
 
