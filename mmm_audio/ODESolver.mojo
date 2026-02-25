@@ -1,15 +1,14 @@
 from mmm_audio import *
 from math import *
 
-struct Euler[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
+struct Euler[num_dims: Int](Copyable, Movable):
     """Simple Euler method ODE solver.
 
     Parameters:
         num_dims: Number of dimensions (state variables), e.g. 2 for position and velocity.
-        num_chans: Number of SIMD channels.
     """
 
-    var state: InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims]
+    var state: InlineArray[Float64, Self.num_dims]
     var dt: Float64
     var world: World
 
@@ -17,9 +16,9 @@ struct Euler[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
         """Initialize the Euler struct."""
         self.world = world
         self.dt = 1.0 / world[].sample_rate
-        self.state = InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims](fill=SIMD[DType.float64, Self.num_chans](0.0))
+        self.state = InlineArray[Float64, Self.num_dims](fill=Float64(0.0))
 
-    fn step(mut self, derivatives: InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims]):
+    fn step(mut self, derivatives: InlineArray[Float64, Self.num_dims]):
         """Perform a single Euler integration step.
 
         Args:
@@ -29,15 +28,14 @@ struct Euler[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
             self.state[i] = self.state[i] + derivatives[i] * self.dt
 
 
-struct RK2[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
+struct RK2[num_dims: Int](Copyable, Movable):
     """Runge-Kutta 2nd order ODE solver.
 
     Parameters:
         num_dims: Number of dimensions (state variables), e.g. 2 for position and velocity.
-        num_chans: Number of SIMD channels.
     """
 
-    var state: InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims]
+    var state: InlineArray[Float64, Self.num_dims]
     var dt: Float64
     var world: World
 
@@ -45,16 +43,16 @@ struct RK2[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
         """Initialize the RK2 struct."""
         self.world = world
         self.dt = 1.0 / world[].sample_rate
-        self.state = InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims](fill=SIMD[DType.float64, Self.num_chans](0.0))
+        self.state = InlineArray[Float64, Self.num_dims](fill=Float64(0.0))
 
-    fn step(mut self, fn_deriv: fn(InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims]) -> InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims]):
+    fn step(mut self, fn_deriv: fn(InlineArray[Float64, Self.num_dims]) -> InlineArray[Float64, Self.num_dims]):
         """Perform a single RK2 integration step.
 
         Args:
             fn_deriv: Function that computes derivatives given the current state.
         """
         var k1 = fn_deriv(self.state)
-        var temp_state = InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims](fill=SIMD[DType.float64, Self.num_chans](0.0))
+        var temp_state = InlineArray[Float64, Self.num_dims](fill=Float64(0.0))
         for i in range(Self.num_dims):
             temp_state[i] = self.state[i] + k1[i] * (self.dt / 2.0)
 
@@ -64,15 +62,14 @@ struct RK2[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
             self.state[i] = self.state[i] + k2[i] * self.dt
 
 
-struct RK4[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
+struct RK4[num_dims: Int](Copyable, Movable):
     """Runge-Kutta 4th order ODE solver.
 
     Parameters:
         num_dims: Number of dimensions (state variables), e.g. 2 for position and velocity.
-        num_chans: Number of SIMD channels.
     """
 
-    var state: InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims]
+    var state: InlineArray[Float64, Self.num_dims]
     var dt: Float64
     var world: World
 
@@ -80,16 +77,16 @@ struct RK4[num_dims: Int, num_chans: Int = 1](Copyable, Movable):
         """Initialize the RK4 struct."""
         self.world = world
         self.dt = 1.0 / world[].sample_rate
-        self.state = InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims](fill=SIMD[DType.float64, Self.num_chans](0.0))
+        self.state = InlineArray[Float64, Self.num_dims](fill=Float64(0.0))
 
-    fn step(mut self, fn_deriv: fn(InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims]) -> InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims]):
+    fn step(mut self, fn_deriv: fn(InlineArray[Float64, Self.num_dims]) -> InlineArray[Float64, Self.num_dims]):
         """Perform a single RK4 integration step.
 
         Args:
             fn_deriv: Function that computes derivatives given the current state.
         """
         var k1 = fn_deriv(self.state)
-        var temp_state = InlineArray[SIMD[DType.float64, Self.num_chans], Self.num_dims](fill=SIMD[DType.float64, Self.num_chans](0.0))
+        var temp_state = InlineArray[Float64, Self.num_dims](fill=Float64(0.0))
         for i in range(Self.num_dims):
             temp_state[i] = self.state[i] + k1[i] * (self.dt / 2.0)
 
