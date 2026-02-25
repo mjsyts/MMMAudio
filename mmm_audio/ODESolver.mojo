@@ -45,7 +45,7 @@ struct RK2[num_dims: Int](Copyable, Movable):
         self.dt = 1.0 / world[].sample_rate
         self.state = InlineArray[Float64, Self.num_dims](fill=Float64(0.0))
 
-    fn step(mut self, fn_deriv: fn(InlineArray[Float64, Self.num_dims]) -> InlineArray[Float64, Self.num_dims]):
+    fn step(mut self, fn_deriv: fn(InlineArray[Float64, Self.num_dims]) capturing -> InlineArray[Float64, Self.num_dims]):
         """Perform a single RK2 integration step.
 
         Args:
@@ -79,7 +79,7 @@ struct RK4[num_dims: Int](Copyable, Movable):
         self.dt = 1.0 / world[].sample_rate
         self.state = InlineArray[Float64, Self.num_dims](fill=Float64(0.0))
 
-    fn step(mut self, fn_deriv: fn(InlineArray[Float64, Self.num_dims]) -> InlineArray[Float64, Self.num_dims]):
+    fn step(mut self, fn_deriv: fn(InlineArray[Float64, Self.num_dims]) capturing -> InlineArray[Float64, Self.num_dims]):
         """Perform a single RK4 integration step.
 
         Args:

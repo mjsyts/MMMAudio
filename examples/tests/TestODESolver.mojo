@@ -27,10 +27,11 @@ struct TestODEOscillator(Representable, Movable, Copyable):
         var omega = 2.0 * pi * self.frequency
         var omega_sq = omega * omega
 
-        fn derivatives(_state: InlineArray[Float64, 2]) -> InlineArray[Float64, 2]:
+        @parameter
+        fn derivatives(state: InlineArray[Float64, 2]) -> InlineArray[Float64, 2]:
             var derivs = InlineArray[Float64, 2](fill=Float64(0.0))
-            derivs[0] = _state[1]
-            derivs[1] = -omega_sq * _state[0]
+            derivs[0] = state[1]
+            derivs[1] = -omega_sq * state[0]
             return derivs^
 
         self.solver.step(derivatives)
