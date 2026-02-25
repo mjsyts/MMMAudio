@@ -23,7 +23,7 @@ struct TestODEOscillator(Representable, Movable, Copyable):
 
     fn next(mut self) -> SIMD[DType.float64, 2]:
         self.m.update(self.frequency, "frequency")
-        var omega = 2.0 * 3.14159265359 * self.frequency
+        var omega = 2.0 * pi * self.frequency
         var omega_sq = omega * omega
 
         fn derivatives(state: InlineArray[Float64, 2]) -> InlineArray[Float64, 2]:
@@ -60,8 +60,8 @@ struct TestODEFilter[N: Int = 2](Representable, Movable, Copyable):
         var freq_left = linexp(self.world[].mouse_x, 0.0, 1.0, 20.0, 20000.0)
         var freq_right = linexp(1.0 - self.world[].mouse_x, 0.0, 1.0, 20.0, 20000.0)
         var rc = SIMD[DType.float64, Self.N](
-            1.0 / (2.0 * 3.14159265359 * freq_left),
-            1.0 / (2.0 * 3.14159265359 * freq_right)
+            1.0 / (2.0 * pi * freq_left),
+            1.0 / (2.0 * pi * freq_right)
         )
         var vout = self.euler.state[0]
         var deriv = InlineArray[SIMD[DType.float64, Self.N], 1](fill=SIMD[DType.float64, Self.N](0.0))
