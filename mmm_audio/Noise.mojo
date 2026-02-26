@@ -216,7 +216,7 @@ struct LFSRNoise[num_chans: Int = 1](Copyable, Movable):
     var rising_bool_detector:   RisingBoolDetector[Self.num_chans]
     var world:                  World
 
-    fn __init__(out self, world: World, width: SIMD[DType.uint32, Self.num_chans]):
+    fn __init__(out self, world: World):
         self.world                = world
         self.freq_mul             = 1.0 / self.world[].sample_rate
         self.state                = SIMD[DType.uint32, Self.num_chans](1)
@@ -224,20 +224,6 @@ struct LFSRNoise[num_chans: Int = 1](Copyable, Movable):
         self.width                = SIMD[DType.uint32, Self.num_chans](0)
         self.mask                 = SIMD[DType.uint32, Self.num_chans](0)
         self.rising_bool_detector = RisingBoolDetector[Self.num_chans]()
-        self.set_width(width)
-
-    fn set_width(mut self, width: SIMD[DType.uint32, Self.num_chans]):
-        """Set the width of the LFSR."""
-        self.width = clip(width, SIMD[DType.uint32, Self.num_chans](3), SIMD[DType.uint32, Self.num_chans](32))
-        self.mask = (self.width.eq(32)).select(
-            SIMD[DType.uint32, Self.num_chans](0xFFFFFFFF),
-            (SIMD[DType.uint32, Self.num_chans](1) << self.width) - 1
-        )
-
-    fn reset(mut self):
-        """Reset the LFSR state to 1."""
-        self.state = SIMD[DType.uint32, Self.num_chans](1)
-        self.phase = SIMD[DType.float64, Self.num_chans](0.0)
 
     @doc_private
     @always_inline
@@ -250,17 +236,22 @@ struct LFSRNoise[num_chans: Int = 1](Copyable, Movable):
         self.state &= self.mask
 
     @always_inline
-    fn next(mut self, freq: SIMD[DType.float64, Self.num_chans] = 1.0, gain: SIMD[DType.float64, Self.num_chans] = 1.0, trig: Bool = False) -> SIMD[DType.float64, Self.num_chans]:
+    fn next(mut self, freq: SIMD[DType.float64, Self.num_chans] = 1.0, width: SIMD[DType.uint32, Self.num_chans] = 15, trig: Bool = False) -> SIMD[DType.float64, Self.num_chans]:
         """Generate the next LFSR noise sample.
 
         Args:
             freq: Frequency at which to step the LFSR in Hz.
-            gain: Amplitude scaling factor.
-            trig: Trigger signal to reset LFSR state.
+            width: Width of the LFSR in bits (3-32).
+            trig: Trigger signal to reset state when switching from False to True.
 
         Returns:
-            The next LFSR noise sample scaled by gain.
+            The next LFSR noise sample.
         """
+        self.width = clip(width, SIMD[DType.uint32, Self.num_chans](3), SIMD[DType.uint32, Self.num_chans](32))
+        self.mask = (self.width.eq(32)).select(
+            SIMD[DType.uint32, Self.num_chans](0xFFFFFFFF),
+            (SIMD[DType.uint32, Self.num_chans](1) << self.width) - 1
+        )
         var trig_mask = SIMD[DType.bool, Self.num_chans](fill=trig)
         var resets = self.rising_bool_detector.next(trig_mask)
         var clamped_freq = clip(freq, SIMD[DType.float64, Self.num_chans](0.0), SIMD[DType.float64, Self.num_chans](self.world[].sample_rate))
@@ -273,4 +264,4 @@ struct LFSRNoise[num_chans: Int = 1](Copyable, Movable):
         self.state = resets.select(SIMD[DType.uint32, Self.num_chans](1), self.state)
         self.phase = resets.select(SIMD[DType.float64, Self.num_chans](0.0), self.phase)
         var out = (self.state & 1).cast[DType.float64]() * 2.0 - 1.0
-        return out * gain
+        return out

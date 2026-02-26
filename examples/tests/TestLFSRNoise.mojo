@@ -10,18 +10,16 @@ struct TestLFSRNoise(Movable, Copyable):
 
     fn __init__(out self, world: World):
         self.world = world
-        self.lfsr = LFSRNoise[1](self.world, SIMD[DType.uint32, 1](8))
+        self.lfsr = LFSRNoise[1](world)
         self.messenger = Messenger(self.world)
         self.freq = 1000.0
         self.gain = 0.2
-        self.width = 8.0
+        self.width = 15.0
 
     fn next(mut self) -> SIMD[DType.float64, 2]:
         self.messenger.update(self.freq, "freq")
         self.messenger.update(self.gain, "gain")
         self.messenger.update(self.width, "width")
 
-        self.lfsr.set_width(SIMD[DType.uint32, 1](Int(self.width)))
-
-        var sample = self.lfsr.next(self.freq, self.gain)
-        return SIMD[DType.float64, 2](sample, sample)
+        var sample = self.lfsr.next(self.freq, SIMD[DType.uint32, 1](Int(self.width)), False)
+        return SIMD[DType.float64, 2](sample, sample) * self.gain
